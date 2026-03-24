@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 # file = "Open csv file/dados_simulados.csv"
-file = "Open csv file/13_30_11-Dados.csv"
+file = "extras/FSM_tester/dados_filtrados.csv"
 # file = "Open csv file/dados_filtrados.csv"
 
 df = pd.read_csv(file)
@@ -235,20 +235,4 @@ for i, row in df.iterrows():
     #         )
     #     parachute = True
 
-# Plot
-plt.figure(figsize=(12, 6))
-plt.scatter(df["millis"], df["altp"], label="Altura Barométrica", color="black", s=5)
 
-events = df[df["event"] != ""]
-for _, row in events.iterrows():
-    t = row["millis"]
-    e = row["event"]
-    plt.axvline(t, linestyle="--")
-    plt.text(t, row["altp"], e, rotation=0, verticalalignment="bottom")
-
-plt.xlabel("Tempo (s)")
-plt.ylabel("Altitude (m)")
-plt.title("Flight profile with detected events")
-plt.grid(True)
-plt.legend()
-plt.show()

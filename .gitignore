@@ -94,3 +94,4 @@ package-lock.json
 .env
 secrets.h
 credentials.h
+.opencode/

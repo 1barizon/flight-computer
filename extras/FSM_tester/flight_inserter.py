@@ -47,6 +47,7 @@ def open_serial(port, baud):
 
 def read_csv(file_path):
     """Read CSV file and return list of rows as dictionaries."""
+
     try:
         data = []
         with open(file_path, 'r') as f:
@@ -66,6 +67,7 @@ def read_csv(file_path):
                 columns = ['millis', 'altp', 'ax', 'ay', 'az']
                 for i, row in enumerate(reader):
                     if len(row) >= 5:  # Ensure we have enough columns
+                        
                         data.append(dict(zip(columns, row[:5])))
                     else:
                         logging.warning(f"Row {i} has {len(row)} columns, expected at least 5. Skipping.")
@@ -197,9 +199,6 @@ def main():
     # Wait a moment for reader thread to start
     time.sleep(0.5)
     
-    # Send data
-    ser.write(b"RESET\n")
-    time.sleep(0.5)
     send_data(ser, data, args.delay, stop_event)
     
     # Wait for reader thread to finish (or timeout)

@@ -22,6 +22,10 @@ enum FlightState {
 FlightState current_state = IDLE;
 float prev_altp = 0.0;
 float prev_millis = 0.0;
+float prev_filtered_ax = 0.0;
+float prev_filtered_ay = 0.0;
+float prev_filtered_az = 0.0;
+
 bool first_reading = true;
 float prev_vz = 0.0;
 
@@ -50,6 +54,9 @@ void reset_flight_state() {
   current_state = IDLE;
   prev_altp = 0.0;
   prev_millis = 0.0;
+  prev_filtered_ax = 0.0;
+  prev_filtered_ay = 0.0;
+  prev_filtered_az = 0.0;
   first_reading = true;
   prev_vz = 0.0;
   liftoff_detected = false;
@@ -59,6 +66,7 @@ void reset_flight_state() {
   parachute_deployed = false;
   prev_acc = 0.0;
   waiting_for_new_flight = false;
+  
 }
 
 // ================================
@@ -187,9 +195,13 @@ void process_sensor_data(float millis, float altp, float ax, float ay, float az)
   }
   
   // Aplicar filtro
-  float filtered_ax = smooth(ax, ax, ALPHA);
-  float filtered_ay = smooth(ay, ay, ALPHA);
-  float filtered_az = smooth(az, az, ALPHA);
+  float filtered_ax = smooth(ax, prev_filtered_ax, ALPHA);
+  float filtered_ay = smooth(ay, prev_filtered_ay, ALPHA);
+  float filtered_az = smooth(az, prev_filtered_az, ALPHA);
+  prev_filtered_ax = filtered_ax;
+  prev_filtered_ay = filtered_ay;
+  prev_filtered_az = filtered_az;
+
   float total_acc = compute_total_acceleration(filtered_ax, filtered_ay, filtered_az);
   
   // ===== MÁQUINA DE ESTADOS =====

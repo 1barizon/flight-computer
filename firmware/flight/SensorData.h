@@ -11,9 +11,10 @@
  * @date 2026-04-06
  * @version 1.0.0
  * 
- * @see firmware/REFACTORING_PLAN.md - Especificação completa de estruturas (linhas 239-288)
- * @see firmware/sensors/ISensor.h - Interface abstrata de sensores
+ * @see firmware/REFACTORING_PLAN.md linhas 243-288 - Estruturas de Dados
+ * @see firmware/REFACTORING_PLAN.md linhas 113-153 - FSM - Estados de Voo
  * @see firmware/flight/FlightControlTask.h - Task que popula SensorData
+ * @see firmware/flight/TelemetryTask.h - Task que consome SensorData via queue
  */
 
 #ifndef SENSOR_DATA_H

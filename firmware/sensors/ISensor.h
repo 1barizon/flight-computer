@@ -9,8 +9,10 @@
  * @date 2026-04-06
  * @version 1.0.0
  * 
- * @see firmware/REFACTORING_PLAN.md - Arquitetura completa
- * @see firmware/sensors/BMP585Sensor.h - Exemplo de implementação
+ * @see firmware/REFACTORING_PLAN.md linhas 54-57 - Estrutura de Diretórios
+ * @see firmware/REFACTORING_PLAN.md linhas 365-386 - Interface Base (Fase 2)
+ * @see firmware/sensors/BMP585Sensor.h - Exemplo de implementação concreta
+ * @see firmware/flight/FlightControlTask.h - Uso em tasks FreeRTOS
  */
 
 #ifndef ISENSOR_H
@@ -24,15 +26,88 @@
  * Todos os sensores (barometro, IMU, GPS, etc.) devem herdar desta classe
  * e implementar os metodos definidos aqui.
  * 
- * Exemplo de uso:
- * @code
+ * @example
+ * **Exemplo 1: Implementação de um sensor (BMP585Sensor)**
+ * 
+ * @code{.cpp}
+ * #include "ISensor.h"
+ * #include <Adafruit_BMP5XX.h>
+ * 
  * class BMP585Sensor : public ISensor {
- *   bool begin() override { /* ... */ }
- *   void update() override { /* ... */ }
- *   String getData() override { /* ... */ }
- *   bool isReady() override { /* ... */ }
+ * private:
+ *   Adafruit_BMP5XX _bmp;
+ *   float _altitude;
+ *   bool _isReady;
+ * 
+ * public:
+ *   bool begin() override {
+ *     if (!_bmp.begin_I2C(0x77)) {
+ *       return false;  // Sensor não encontrado
+ *     }
+ *     _isReady = true;
+ *     return true;
+ *   }
+ * 
+ *   void update() override {
+ *     if (!_isReady) return;
+ *     sensors_event_t temp_event, pressure_event;
+ *     _bmp.getEvent(&pressure_event, &temp_event);
+ *     _altitude = _bmp.readAltitude(1013.25);
+ *   }
+ * 
+ *   String getData() override {
+ *     return String(_altitude) + "m";
+ *   }
+ * 
+ *   bool isReady() override {
+ *     return _isReady;
+ *   }
  * };
  * @endcode
+ * 
+ * **Exemplo 2: Uso em FreeRTOS Task (50Hz)**
+ * 
+ * @code{.cpp}
+ * // Instância global do sensor
+ * ISensor* g_baroSensor = nullptr;
+ * 
+ * // Inicialização na setup()
+ * void setup() {
+ *   Serial.begin(115200);
+ *   delay(1000);
+ * 
+ *   g_baroSensor = new BMP585Sensor();
+ *   if (!g_baroSensor->begin()) {
+ *     Serial.println("❌ Erro ao inicializar BMP585!");
+ *     while(1);  // Travamento seguro
+ *   }
+ *   Serial.println("✅ BMP585 inicializado");
+ * }
+ * 
+ * // FlightControlTask (Core 1, 50Hz)
+ * void flightControlTask(void* parameter) {
+ *   TickType_t xLastWakeTime = xTaskGetTickCount();
+ *   const TickType_t xFrequency = pdMS_TO_TICKS(20);  // 50Hz = 20ms
+ * 
+ *   while(true) {
+ *     // Atualizar sensor (DEVE SER NÃO-BLOQUEANTE!)
+ *     if (g_baroSensor->isReady()) {
+ *       g_baroSensor->update();
+ *       String data = g_baroSensor->getData();
+ *       Serial.println(data);  // CSV ou JSON
+ *     }
+ * 
+ *     // Delay sem bloquear outras tasks
+ *     vTaskDelayUntil(&xLastWakeTime, xFrequency);
+ *   }
+ * }
+ * @endcode
+ * 
+ * @note A chamada a update() **DEVE SER NÃO-BLOQUEANTE** para não afetar
+ *       outras tasks de maior prioridade em FreeRTOS.
+ * 
+ * @note Para sensores lentos (GPS), usar TelemetryTask (5Hz) ao invés de
+ *       FlightControlTask (50Hz). Ver firmware/REFACTORING_PLAN.md.
  */
 class ISensor {
 public:

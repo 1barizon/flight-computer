@@ -25,17 +25,18 @@
 /**
  * @brief Estados da maquina de estados de voo
  * 
- * Representa os 7 estados do ciclo de voo do foguete,
- * validados com dados reais em extras/FSM_tester/13_30_11-Dados.csv
+ * Máquina de estados simplificada com 4 estados principais.
+ * Estados internos (LIFTOFF, BURNOUT, APOGEE, FREEFALL) são rastreados
+ * via flags booleanas para melhor diagnóstico sem aumentar complexidade.
+ * 
+ * Validado com dados reais em extras/FSM_tester/13_30_11-Dados.csv
+ * Referência: test/FSM/FSM.ino (implementação em 4 estados)
  */
 enum FlightState {
-  IDLE = 0,       ///< Pré-lançamento, aguardando no solo
-  LIFTOFF = 1,    ///< Subida motorizada, alta aceleração
-  BURNOUT = 2,    ///< Costa balística (sem motor)
-  APOGEE = 3,     ///< Altitude máxima atingida
-  FREEFALL = 4,   ///< Queda rápida pós-apogeu
-  PARACHUTE = 5,  ///< Descida controlada com paraquedas
-  LANDED = 6      ///< Pouso detectado, fim do voo
+  IDLE = 0,      ///< Pré-lançamento, aguardando no solo
+  ASCENT = 1,    ///< Subida (LIFTOFF → BURNOUT → APOGEE)
+  DESCENT = 2,   ///< Descida (FREEFALL → PARACHUTE → LANDING)
+  LANDED = 3     ///< Pouso detectado, fim do voo
 };
 
 /**
@@ -46,14 +47,11 @@ enum FlightState {
  */
 inline const char* getFlightStateName(FlightState state) {
   switch (state) {
-    case IDLE:      return "IDLE";
-    case LIFTOFF:   return "LIFTOFF";
-    case BURNOUT:   return "BURNOUT";
-    case APOGEE:    return "APOGEE";
-    case FREEFALL:  return "FREEFALL";
-    case PARACHUTE: return "PARACHUTE";
-    case LANDED:    return "LANDED";
-    default:        return "UNKNOWN";
+    case IDLE:    return "IDLE";
+    case ASCENT:  return "ASCENT";
+    case DESCENT: return "DESCENT";
+    case LANDED:  return "LANDED";
+    default:      return "UNKNOWN";
   }
 }
 
@@ -71,6 +69,11 @@ inline const char* getFlightStateName(FlightState state) {
  *       - struct alignment (padding)
  *       - doubles para latitude/longitude (8 bytes cada)
  *       - Ainda assim, dentro do orçamento RAM (409 KB disponível)
+ * 
+ * @note Estado FlightState usa apenas 4 valores (IDLE, ASCENT, DESCENT, LANDED).
+ *       Estados internos (LIFTOFF, BURNOUT, APOGEE, FREEFALL) são rastreados
+ *       como flags separadas em FlightControlTask para diagnóstico.
+ *       Ver: test/FSM/FSM.ino para implementação de referência.
  */
 struct SensorData {
   // === TIMESTAMP ===
@@ -106,6 +109,8 @@ struct SensorData {
    * - Leitura de valores não inicializados (undefined behavior)
    * - NaN propagação na FSM
    * - Decisões de desdobramento de paraquedas baseadas em lixo de memória
+   * 
+   * @note Estado padrão é IDLE (espera por liftoff)
    */
   SensorData()
       : timestamp(0), packet_count(0),
@@ -119,7 +124,7 @@ struct SensorData {
         // GPS
         latitude(0.0), longitude(0.0), gpsAltitude(0.0f), satellites(0),
         gps_valid(false),
-        // FSM
+        // FSM (4 estados: IDLE, ASCENT, DESCENT, LANDED)
         state(IDLE), parachute_deployed(false) {}
 };
 

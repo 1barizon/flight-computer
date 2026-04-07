@@ -56,7 +56,7 @@ firmware/
 ```
 
 #### Documentation Created
-- ✅ `firmware/REFACTORING_PLAN.md` - Complete v2.0 architecture specification (7-state FSM)
+- ✅ `firmware/REFACTORING_PLAN.md` - Complete v2.0 architecture specification (4-state FSM)
 - ✅ `docs/software.md` - Updated with new structure
 - ✅ Doxygen comments on all interfaces
 
@@ -107,21 +107,28 @@ public:
 
 #### 2. SensorData Structures (`firmware/flight/SensorData.h`)
 
-**A. FlightState Enum** (7 States - Validated with Real Flight Data)
+**A. FlightState Enum** (4 States - Simplified Aligned with Production Code)
 
 ```cpp
 enum FlightState {
-  IDLE = 0,       // Pre-launch, waiting on ground
-  LIFTOFF = 1,    // Powered ascent, high acceleration
-  BURNOUT = 2,    // Ballistic coast (motor off)
-  APOGEE = 3,     // Maximum altitude reached
-  FREEFALL = 4,   // Rapid descent post-apogee
-  PARACHUTE = 5,  // Controlled descent with parachute
-  LANDED = 6      // Landing detected, end of flight
+  IDLE = 0,      // Pre-launch, waiting on ground
+  ASCENT = 1,    // Powered ascent + ballistic coast (LIFTOFF → BURNOUT → APOGEE)
+  DESCENT = 2,   // Rapid descent + parachute phase (FREEFALL → PARACHUTE)
+  LANDED = 3     // Landing detected, end of flight
 };
 ```
 
-Validation source: `extras/FSM_tester/13_30_11-Dados.csv` (real rocket flight data)
+**Design Rationale**:
+- Simplified from 7-state to 4-state machine for production implementation
+- Matches proven implementation in `test/FSM/FSM.ino` (tested and validated)
+- Internal events (LIFTOFF, BURNOUT, APOGEE, FREEFALL) tracked as boolean flags in FlightControlTask
+- Reduces state complexity while maintaining detailed diagnostics via event flags
+- Reference: `test/FSM/FSM.ino` shows production implementation with event flags
+
+**Validation source**: 
+- Production code: `test/FSM/FSM.ino` (4-state implementation)
+- Real flight data: `extras/FSM_tester/13_30_11-Dados.csv` (1,873 telemetry points)
+- FSM Tester: `extras/FSM_tester/FSM_Tester.py` (Python simulator)
 
 **B. SensorData Struct** (Inter-Task Communication)
 

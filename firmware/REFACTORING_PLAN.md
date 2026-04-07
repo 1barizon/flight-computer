@@ -295,7 +295,7 @@ QueueHandle_t logQueue;
 
 | Fase | Descrição | Tempo | Status |
 |------|-----------|-------|--------|
-| 1 | Setup e preparação | 30 min | ⏳ Pendente |
+| 1 | Setup e preparação | 30 min | Feito |
 | 2 | Interface base + structs | 45 min | ⏳ Pendente |
 | 3 | BMP585Sensor (classe) | 2 h | ⏳ Pendente |
 | 4 | LSM6DS3Sensor (classe) | 1.5 h | ⏳ Pendente |
@@ -313,10 +313,10 @@ QueueHandle_t logQueue;
 **Status:** ⏳ Pendente
 
 **Objetivos:**
-- [ ] Criar estrutura de diretórios (`sensors/`, `flight/`)
-- [ ] Reorganizar módulos existentes em `modules/`
-- [ ] Instalar bibliotecas via Arduino Library Manager
-- [ ] Criar branch `feature/oop-freertos-refactor`
+- [x] Criar estrutura de diretórios (`sensors/`, `flight/`)
+- [x] Reorganizar módulos existentes em `modules/`
+- [x] Instalar bibliotecas via Arduino Library Manager
+- [x] Criar branch `feature/oop-freertos-refactor`
 
 **Ações:**
 ```bash

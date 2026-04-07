@@ -20,6 +20,7 @@
 #define SENSOR_DATA_H
 
 #include <Arduino.h>
+#include <cstring>  // Para memset()
 
 /**
  * @brief Estados da maquina de estados de voo
@@ -69,7 +70,7 @@ inline const char* getFlightStateName(FlightState state) {
  * @note O tamanho é maior que o estimado (64 bytes) devido a:
  *       - struct alignment (padding)
  *       - doubles para latitude/longitude (8 bytes cada)
- *       - Ainda assim, dentro do orçamento RAM
+ *       - Ainda assim, dentro do orçamento RAM (409 KB disponível)
  */
 struct SensorData {
   // === TIMESTAMP ===
@@ -97,6 +98,29 @@ struct SensorData {
   // === FSM STATE ===
   FlightState state;              ///< Estado atual do voo
   bool parachute_deployed;        ///< True se paraquedas foi desdobrado
+  
+  /**
+   * @brief Construtor com inicializacao segura de todos os campos
+   * 
+   * CRÍTICO: Todos os campos são inicializados para evitar:
+   * - Leitura de valores não inicializados (undefined behavior)
+   * - NaN propagação na FSM
+   * - Decisões de desdobramento de paraquedas baseadas em lixo de memória
+   */
+  SensorData()
+      : timestamp(0), packet_count(0),
+        // BMP585
+        altitude(0.0f), pressure(1013.25f), temperature(0.0f),
+        verticalVelocity(0.0f), maxAltitude(0.0f),
+        // LSM6DS3
+        accelX(0.0f), accelY(0.0f), accelZ(9.81f),  // accelZ = gravidade
+        gyroX(0.0f), gyroY(0.0f), gyroZ(0.0f),
+        totalAccel(9.81f),  // Inicial = gravidade pura
+        // GPS
+        latitude(0.0), longitude(0.0), gpsAltitude(0.0f), satellites(0),
+        gps_valid(false),
+        // FSM
+        state(IDLE), parachute_deployed(false) {}
 };
 
 /**
@@ -105,14 +129,30 @@ struct SensorData {
  * Enviada por qualquer task para a LoggerTask via logQueue.
  * Permite logging thread-safe com nivels de severidade.
  * 
- * Tamanho: ~140 bytes
- * Queue: 50 slots = ~7KB RAM
+ * Tamanho real: **144 bytes** (~140 bytes estimado)
+ * Queue: 50 slots × 144 bytes = ~7.2KB RAM
+ * 
+ * @note Buffer de mensagem é inicializado com '\0' para evitar
+ *       leitura de dados não inicializados ou overflow em strings
  */
 struct LogMessage {
   char message[128];          ///< Mensagem de log (max 127 chars + null terminator)
   unsigned long timestamp;    ///< Timestamp em millisegundos
   uint8_t taskId;             ///< ID da task que enviou (1=FSM, 2=Telemetry, 3=Logger)
   uint8_t level;              ///< Nivel de severidade (0=DEBUG, 1=INFO, 2=WARN, 3=ERROR)
+  
+  /**
+   * @brief Construtor com inicializacao segura
+   * 
+   * CRÍTICO: Buffer é inicializado com '\0' para evitar:
+   * - String buffer overflow
+   * - Leitura de dados indefinidos
+   * - Caracteres de lixo nos logs
+   */
+  LogMessage()
+      : timestamp(0), taskId(0), level(0) {
+    memset(message, 0, sizeof(message));  // Inicializar buffer com zeros
+  }
 };
 
 /**

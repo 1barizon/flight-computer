@@ -9,23 +9,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
-- Planned new features will be listed here
+- **Phase 1-2 Refactoring Completed**: Project structure and base interfaces for v2.0
+  - `firmware/sensors/ISensor.h` - Abstract interface for all sensors (BMP585, LSM6DS3, GPS)
+  - `firmware/flight/SensorData.h` - Shared data structures (SensorData, LogMessage)
+  - Sensor abstraction layer enabling polymorphic sensor implementations
+  - FreeRTOS-compatible data structures for inter-task communication via queues
+  - Complete Doxygen documentation for all interfaces
 
 ### Changed
 
-- Changes to existing functionality
+- Migrated from v1.0 procedural architecture to v2.0 Object-Oriented design
+- Restructured firmware directory with new `sensors/` and `flight/` modules
+- Updated software.md with new project structure documentation
 
 ### Fixed
 
-- Bug fixes
+- **Critical Safety Initializations** (commit 4b0c239):
+  - All SensorData struct fields now have safe default values
+  - LogMessage buffer initialized with zero-terminator
+  - Prevents undefined behavior from uninitialized variables
+  - Ensures parachute_deployed flag cannot be random on startup
+  - Protects against NaN propagation in FSM transitions
 
-### Removed
+### Documentation Added
 
-- Removed or discontinued features
-
-### Security
-
-- Security-related changes
+- `docs/adr/002-sensor-abstraction.md` - Architectural Decision Record for ISensor interface
+- `docs/phase-1-2-summary.md` - Executive summary of Phase 1-2 completion
+- Updated `docs/software.md` with new module structure and component mapping
 
 ---
 

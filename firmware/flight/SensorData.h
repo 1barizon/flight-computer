@@ -10,6 +10,10 @@
  * @author Team #100 - Serra Rocketry
  * @date 2026-04-06
  * @version 1.0.0
+ * 
+ * @see firmware/REFACTORING_PLAN.md - Especificação completa de estruturas (linhas 239-288)
+ * @see firmware/sensors/ISensor.h - Interface abstrata de sensores
+ * @see firmware/flight/FlightControlTask.h - Task que popula SensorData
  */
 
 #ifndef SENSOR_DATA_H
@@ -59,8 +63,13 @@ inline const char* getFlightStateName(FlightState state) {
  * estado da maquina de estados. Enviada pela FlightControlTask
  * para a TelemetryTask via sensorDataQueue.
  * 
- * Tamanho: ~64 bytes
- * Queue: 25 slots = ~1.6KB RAM
+ * Tamanho real: **96 bytes** (~64 bytes estrutura + 32 bytes alignment)
+ * Queue: 25 slots × 96 bytes = ~2.4KB RAM
+ * 
+ * @note O tamanho é maior que o estimado (64 bytes) devido a:
+ *       - struct alignment (padding)
+ *       - doubles para latitude/longitude (8 bytes cada)
+ *       - Ainda assim, dentro do orçamento RAM
  */
 struct SensorData {
   // === TIMESTAMP ===

@@ -49,6 +49,17 @@ Servo ParachuteServo;
  */
 bool parachute_deployed = false;
 
+/**
+ * Tracks whether servo position verification is still pending after command.
+ * This avoids blocking the control loop with busy-wait delays.
+ */
+bool parachute_verification_pending = false;
+
+/**
+ * Timestamp when parachute open command was issued.
+ */
+unsigned long parachute_command_millis = 0;
+
 //==============================================================================
 // FORWARD DECLARATIONS
 //==============================================================================
@@ -104,12 +115,11 @@ void setupServo()
  *    (either below minimum altitude OR in free fall)
  * 3. !parachute_deployed (not already deployed)
  * 
- * Deployment sequence:
+ * Deployment sequence (non-blocking):
  * 1. Command servo to MAXPOS (open position)
- * 2. Wait up to 500ms for servo to reach position
- * 3. Verify servo reached MAXPOS
- * 4. Report deployment status
- * 5. Set parachute_deployed flag
+ * 2. Record command timestamp and continue loop immediately
+ * 3. In subsequent calls, verify servo reached MAXPOS (or timeout at 500ms)
+ * 4. Report error only if timeout occurs without reaching expected position
  * 
  * After deployment:
  * - Updates previous_altitude for velocity calculation
@@ -125,6 +135,20 @@ void setupServo()
  */
 void handleParachute(float altitude, float velocity)
 {
+  // Non-blocking verification phase: check servo state across loop iterations
+  if (parachute_verification_pending)
+  {
+    if (ParachuteServo.read() == MAXPOS)
+    {
+      parachute_verification_pending = false;
+    }
+    else if (millis() - parachute_command_millis >= 500)
+    {
+      printBoth("ERROR: Servo failed to open!");
+      parachute_verification_pending = false;
+    }
+  }
+
   // Check if parachute has already been deployed
   if (!parachute_deployed)
   {
@@ -134,25 +158,10 @@ void handleParachute(float altitude, float velocity)
     {
       // Command servo to open position
       ParachuteServo.write(MAXPOS);
-      
-      // Record deployment initiation time
-      unsigned long startTime = millis();
-      
-      // Wait up to 500ms for servo to reach target position
-      while (millis() - startTime < 500)
-      {
-        if (ParachuteServo.read() == MAXPOS)
-        {
-          // Servo reached target position
-          break;
-        }
-      }
-      
-      // Verify servo successfully moved to open position
-      if (ParachuteServo.read() != MAXPOS)
-      {
-        printBoth("ERROR: Servo failed to open!");
-      }
+
+      // Start asynchronous verification without blocking the flight loop
+      parachute_command_millis = millis();
+      parachute_verification_pending = true;
       
       // Report deployment with telemetry
       printBoth("Parachute deployed. Altitude: " + String(altitude) + 

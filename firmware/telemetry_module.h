@@ -103,12 +103,12 @@ String getDataString();
  * 
  * @note Message is sent to Serial at configured baud rate (115200)
  * @note LoRa transmission may take several milliseconds depending on message length
- * @note Buzzer beep provides audio confirmation of transmission
+ * @note Optional buzzer beep provides audio confirmation for low-rate events
  * 
  * @see sendLoRa() in lora_module.h for LoRa transmission details
  * @see buzzSignal() in buzzer_module.h for audio feedback
  */
-void printBoth(const String &message);
+void printBoth(const String &message, bool beep = true);
 
 //==============================================================================
 // TELEMETRY LOGGING

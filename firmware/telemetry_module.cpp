@@ -13,11 +13,14 @@ String getDataString()
   return BMPData() + "," + MPUData() + "," + GPSData();
 }
 
-void printBoth(const String &message)
+void printBoth(const String &message, bool beep)
 {
   Serial.println(message);     // Output to USB serial connection
   sendLoRa(message);           // Transmit via LoRa radio
-  buzzSignal("Beep");          // Audio confirmation of transmission
+
+  if (beep) {
+    buzzSignal("Beep");        // Audio confirmation of low-rate events
+  }
 }
 
 void logData(unsigned long current_millis, bool parachute_deployed)
@@ -31,7 +34,7 @@ void logData(unsigned long current_millis, bool parachute_deployed)
                        parachute_deployed;
 
   // Transmit through multiple channels and store to filesystem
-  printBoth(data_string);              // Send via Serial and LoRa (with beep)
+  printBoth(data_string, false);       // Send via Serial and LoRa without blocking beep
   appendFile(file_dir, data_string);   // Append to data file on LittleFS
 
   // Increment packet counter for next transmission

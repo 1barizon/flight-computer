@@ -46,7 +46,7 @@
  * Incremented with each data logging operation. Used to track packet sequence
  * and identify missing data in post-flight analysis. Resets on power cycle.
  */
-int packet_count = 0;
+extern int packet_count;
 
 /**
  * @brief Previous timestamp in milliseconds
@@ -54,7 +54,7 @@ int packet_count = 0;
  * Stores the last time data was logged, used in main loop to control
  * logging interval (typically 200ms as defined by INTERVAL in config.h).
  */
-unsigned long previous_millis = 0;
+extern unsigned long previous_millis;
 
 //==============================================================================
 // DATA AGGREGATION
@@ -81,10 +81,7 @@ unsigned long previous_millis = 0;
  * @see MPUData() in mpu6050_sensor.h
  * @see GPSData() in gps_module.h
  */
-String getDataString()
-{
-  return BMPData() + "," + MPUData() + "," + GPSData();
-}
+String getDataString();
 
 //==============================================================================
 // DUAL-CHANNEL OUTPUT
@@ -111,12 +108,7 @@ String getDataString()
  * @see sendLoRa() in lora_module.h for LoRa transmission details
  * @see buzzSignal() in buzzer_module.h for audio feedback
  */
-void printBoth(const String &message)
-{
-  Serial.println(message);     // Output to USB serial connection
-  sendLoRa(message);           // Transmit via LoRa radio
-  buzzSignal("Beep");          // Audio confirmation of transmission
-}
+void printBoth(const String &message);
 
 //==============================================================================
 // TELEMETRY LOGGING
@@ -171,22 +163,6 @@ void printBoth(const String &message)
  * @see appendFile() in filesystem_module.h for data storage
  * @see TEAM_ID and file_dir are defined in config.h
  */
-void logData(unsigned long current_millis, bool parachute_deployed)
-{
-  // Collect all sensor readings in CSV format
-  String readings = getDataString();
-  
-  // Assemble complete telemetry packet with metadata
-  String data_string = TEAM_ID + "," + String(current_millis) + "," + 
-                       String(packet_count) + "," + readings + "," + 
-                       parachute_deployed;
-  
-  // Transmit through multiple channels and store to filesystem
-  printBoth(data_string);              // Send via Serial and LoRa (with beep)
-  appendFile(file_dir, data_string);   // Append to data file on LittleFS
-  
-  // Increment packet counter for next transmission
-  packet_count++;
-}
+void logData(unsigned long current_millis, bool parachute_deployed);
 
 #endif // TELEMETRY_MODULE_H

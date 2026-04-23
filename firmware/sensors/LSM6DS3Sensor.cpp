@@ -1,5 +1,6 @@
 
 #include "LSM6DS3Sensor.h"
+#include <cmath>
 
 LSM6DS3Sensor::LSM6DS3Sensor()
 		: ready(false),
@@ -30,7 +31,7 @@ bool LSM6DS3Sensor::begin() {
 	gyroY = gyro_event.gyro.y;
 	gyroZ = gyro_event.gyro.z;
 
-	total_accel = sqrt(accelX * accelX + accelY * accelY + accelZ * accelZ);
+	total_accel = std::sqrt(accelX * accelX + accelY * accelY + accelZ * accelZ);
 	ready = true;
 
 	return true;
@@ -53,8 +54,8 @@ void LSM6DS3Sensor::update() {
 	const float newGyroY = gyro_event.gyro.y;
 	const float newGyroZ = gyro_event.gyro.z;
 
-	if (!isfinite(newAccelX) || !isfinite(newAccelY) || !isfinite(newAccelZ) ||
-			!isfinite(newGyroX) || !isfinite(newGyroY) || !isfinite(newGyroZ)) {
+	if (!std::isfinite(newAccelX) || !std::isfinite(newAccelY) || !std::isfinite(newAccelZ) ||
+			!std::isfinite(newGyroX) || !std::isfinite(newGyroY) || !std::isfinite(newGyroZ)) {
 		return;
 	}
 
@@ -65,7 +66,7 @@ void LSM6DS3Sensor::update() {
 	gyroY = newGyroY;
 	gyroZ = newGyroZ;
 
-	total_accel = sqrt(accelX * accelX + accelY * accelY + accelZ * accelZ);
+	total_accel = std::sqrt(accelX * accelX + accelY * accelY + accelZ * accelZ);
 }
 
 String LSM6DS3Sensor::getData() {

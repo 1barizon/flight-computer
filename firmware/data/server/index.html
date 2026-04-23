@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Flight Data Server</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <main class="container">
+    <header>
+      <h1>Flight Data Server</h1>
+      <p>Browse, download and delete files stored in LittleFS.</p>
+    </header>
+
+    <section class="panel controls">
+      <button id="refreshBtn" type="button">Refresh list</button>
+      <span id="status" role="status" aria-live="polite"></span>
+    </section>
+
+    <section class="panel">
+      <table>
+        <thead>
+          <tr>
+            <th>Filename</th>
+            <th>Size (bytes)</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="filesBody"></tbody>
+      </table>
+    </section>
+  </main>
+
+  <script src="/index.js"></script>
+</body>
+</html>

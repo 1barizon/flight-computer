@@ -83,6 +83,8 @@
  */
 void setup()
 {
+  initRuntimeConfig();   // Initialize mutable config (SSID buffer and defaults)
+
   //----------------------------------------------------------------------------
   // Communication and Hardware Initialization
   //----------------------------------------------------------------------------

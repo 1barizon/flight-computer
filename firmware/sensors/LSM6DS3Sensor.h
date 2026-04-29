@@ -19,7 +19,21 @@ public:
   
   // Específicos do IMU
   float getAccelZ() const;
-  float getTotalAccel() const;    
+  float getTotalAccel() const;
+  
+  // Vector accessors (Issue #6 requirement)
+  void getAcceleration(float* x, float* y, float* z) const {
+    if (x) *x = accelX;
+    if (y) *y = accelY;
+    if (z) *z = accelZ;
+  }
+  
+  void getGyroscope(float* x, float* y, float* z) const {
+    if (x) *x = gyroX;
+    if (y) *y = gyroY;
+    if (z) *z = gyroZ;
+  }
+    
 private:
   Adafruit_LSM6DS3 lsm;
   bool ready;

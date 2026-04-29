@@ -8,11 +8,15 @@
  * entire data pipeline from sensor reading to storage and transmission.
  * 
  * Data flow:
- * 1. Aggregate sensor data from BMP280, MPU6050, and GPS modules
+ * 1. Aggregate sensor data from BMP280/BMP585, LSM6DS3/MPU6050, and GPS modules
  * 2. Format data into CSV string with timestamp and metadata
  * 3. Transmit via Serial monitor and LoRa radio
  * 4. Store to LittleFS filesystem for post-flight analysis
  * 5. Provide audio feedback via buzzer
+ * 
+ * Sensor migration (v2.0):
+ * - Primary: LSM6DS3 (new IMU sensor)
+ * - Fallback: MPU6050 (legacy sensor for compatibility)
  * 
  * Telemetry format (CSV):
  * TEAM_ID,millis,count,altp,temp,umi,p,gp,gr,gy,ap,ar,ay,hora,data,alt,lat,lon,sat,pqd
@@ -67,9 +71,14 @@ extern unsigned long previous_millis;
  * comma-separated string ready for transmission and storage. This function
  * calls the data retrieval functions from each sensor module.
  * 
+ * Sensor selection (v2.0 migration):
+ * - IMU: Uses LSM6DS3Sensor if available and ready; falls back to MPUData() (MPU6050)
+ * - Barometer: BMPData() from BMP280
+ * - GPS: GPSData()
+ * 
  * Data sources:
  * - BMPData(): Altitude (pressure-based), temperature, humidity, pressure
- * - MPUData(): Gyroscope (x,y,z), Accelerometer (x,y,z)
+ * - LSM6DS3Sensor::getData() OR MPUData(): Gyroscope (x,y,z), Accelerometer (x,y,z)
  * - GPSData(): Time, date, altitude (GPS), latitude, longitude, satellites
  * 
  * @return Complete telemetry string in CSV format combining all sensor data
@@ -77,8 +86,9 @@ extern unsigned long previous_millis;
  * @note The returned string does NOT include TEAM_ID, timestamp, count, or parachute status
  * @note These fields are added later by logData() function
  * 
+ * @see LSM6DS3Sensor::getData() in sensors/LSM6DS3Sensor.h
  * @see BMPData() in bmp280_sensor.h
- * @see MPUData() in mpu6050_sensor.h
+ * @see MPUData() in mpu6050_sensor.h (legacy fallback)
  * @see GPSData() in gps_module.h
  */
 String getDataString();

@@ -4,13 +4,25 @@
  */
 
 #include "telemetry_module.h"
+#include "sensors/LSM6DS3Sensor.h"
 
 int packet_count = 0;
 unsigned long previous_millis = 0;
 
+// Forward declarations for sensor objects (from firmware.ino)
+extern LSM6DS3Sensor* g_lsm_sensor;
+
 String getDataString()
 {
-  return BMPData() + "," + MPUData() + "," + GPSData();
+  // Try to use LSM6DS3 if available, fallback to MPU6050 for compatibility
+  String imu_data;
+  if (g_lsm_sensor != nullptr && g_lsm_sensor->isReady()) {
+    imu_data = g_lsm_sensor->getData();  // Use new LSM6DS3 sensor
+  } else {
+    imu_data = MPUData();  // Fallback to legacy MPU6050
+  }
+  
+  return BMPData() + "," + imu_data + "," + GPSData();
 }
 
 void printBoth(const String &message, bool beep)

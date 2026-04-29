@@ -54,11 +54,31 @@ void LSM6DS3Sensor::update() {
 	const float newGyroY = gyro_event.gyro.y;
 	const float newGyroZ = gyro_event.gyro.z;
 
+	// Validation 1: Check for NaN/Inf (critical for safety)
 	if (!std::isfinite(newAccelX) || !std::isfinite(newAccelY) || !std::isfinite(newAccelZ) ||
 			!std::isfinite(newGyroX) || !std::isfinite(newGyroY) || !std::isfinite(newGyroZ)) {
 		return;
 	}
 
+	// Validation 2: Check realistic ranges (Issue #6 requirement)
+	// LSM6DS3 typical range: ±16g (±156.96 m/s²) for accel, ±2000 °/s for gyro
+	// We allow slightly higher peaks (200 m/s², 2000 °/s) for extreme events
+	const float MAX_ACCEL = 200.0f;   // m/s² (allows 20g peaks)
+	const float MAX_GYRO = 2000.0f;   // °/s (matches sensor range)
+	
+	if (std::abs(newAccelX) > MAX_ACCEL ||
+	    std::abs(newAccelY) > MAX_ACCEL ||
+	    std::abs(newAccelZ) > MAX_ACCEL) {
+		return;  // Drop corrupted sample to prevent FSM corruption
+	}
+	
+	if (std::abs(newGyroX) > MAX_GYRO ||
+	    std::abs(newGyroY) > MAX_GYRO ||
+	    std::abs(newGyroZ) > MAX_GYRO) {
+		return;  // Drop corrupted sample
+	}
+
+	// Accept sample after validation passes
 	accelX = newAccelX;
 	accelY = newAccelY;
 	accelZ = newAccelZ;

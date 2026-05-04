@@ -27,6 +27,7 @@
 #include <WiFi.h>
 #include <ESPAsyncWebServer.h>
 #include <ArduinoJson.h>
+#include <ctype.h>
 #include "LittleFS.h"
 #include "config.h"
 
@@ -42,6 +43,40 @@
  * serving web requests concurrently.
  */
 AsyncWebServer server(80);
+
+/**
+ * @brief Validate user-provided filename for API file operations
+ *
+ * Security rules:
+ * - No path separators ('/' or '\\')
+ * - No traversal sequence ("..")
+ * - No control characters
+ * - Only allow [A-Za-z0-9._-]
+ */
+bool isValidApiFilename(const String &filename)
+{
+  if (filename.length() == 0 || filename.length() > 64) {
+    return false;
+  }
+
+  if (filename.indexOf("..") >= 0 || filename.indexOf('/') >= 0 ||
+      filename.indexOf('\\') >= 0) {
+    return false;
+  }
+
+  for (size_t i = 0; i < filename.length(); i++) {
+    const char c = filename.charAt(i);
+    if ((unsigned char)c < 32 || c == 127) {
+      return false;
+    }
+
+    if (!(isalnum((unsigned char)c) || c == '.' || c == '_' || c == '-')) {
+      return false;
+    }
+  }
+
+  return true;
+}
 
 //==============================================================================
 // WEB SERVER ROUTE CONFIGURATION
@@ -146,6 +181,11 @@ void setServerRoutes()
     // Check if requested file exists in filesystem
     const AsyncWebParameter* param = request->getParam("filename");
     String filename = param->value();
+    if (!isValidApiFilename(filename)) {
+      request->send(400, "text/plain; charset=utf-8", "Invalid filename.");
+      return;
+    }
+
     if (!LittleFS.exists("/" + filename)) {
       request->send(404, "text/plain; charset=utf-8", "File <" + filename + 
           "> not found in filesystem");
@@ -188,6 +228,11 @@ void setServerRoutes()
 
     const AsyncWebParameter* param = request->getParam("filename");
     String filename = param->value();
+
+    if (!isValidApiFilename(filename)) {
+      request->send(400, "text/plain; charset=utf-8", "Invalid filename.");
+      return;
+    }
 
     // Check if file exists before attempting deletion
     if (!LittleFS.exists("/" + filename)) {

@@ -28,6 +28,11 @@
 #include <LoRa.h>
 #include "config.h"
 
+// Set to 1 to enable verbose LoRa transmission logs.
+#ifndef LORA_DEBUG_LOGS
+#define LORA_DEBUG_LOGS 0
+#endif
+
 //==============================================================================
 // INITIALIZATION FUNCTIONS
 //==============================================================================
@@ -100,8 +105,9 @@ void sendLoRa(const String &message)
   // Finalize and transmit packet
   if (LoRa.endPacket())
   {
-    // Transmission successful
+    #if LORA_DEBUG_LOGS
     Serial.println("LoRa message sent.");
+    #endif
   }
   else
   {

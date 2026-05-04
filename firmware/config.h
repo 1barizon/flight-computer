@@ -149,14 +149,14 @@ const String TEAM_ID = "#100";
  * CSV data file name
  * Stores all telemetry readings
  */
-String file_name = "Dados.csv";
+extern String file_name;
 
 /**
  * Complete data file path
  * Will be filled during setup() with GPS timestamp
  * Format: /HH_MM_SS-Dados.csv
  */
-String file_dir = "";
+extern String file_dir;
 
 //==============================================================================
 // WEB SERVER CONFIGURATION
@@ -166,17 +166,25 @@ String file_dir = "";
  * WiFi network name (SSID) for access point
  * Concatenates "Server" with team ID
  */
-String ssid_str = "Server " + TEAM_ID;
+extern String ssid_str;
 
 /**
  * SSID in C-string format for WiFi library compatibility
  */
-const char *ssid = ssid_str.c_str();
+extern const char *ssid;
 
 /**
  * WiFi network password
  * WARNING: Change to a more secure password in production environment
  */
-const char *password = "Iamarobot";
+extern const char *password;
+
+/**
+ * @brief Initialize mutable runtime configuration values
+ *
+ * Must be called once in setup() before modules that consume runtime
+ * configuration (e.g., WiFi AP setup).
+ */
+void initRuntimeConfig();
 
 #endif // CONFIG_H

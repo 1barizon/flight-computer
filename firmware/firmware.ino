@@ -9,7 +9,7 @@
  * 
  * System capabilities:
  * - Altitude and atmospheric pressure monitoring (BMP280)
- * - Inertial measurement unit for orientation (MPU6050)
+ * - Inertial measurement unit for orientation (LSM6DS3 primary, MPU6050 fallback)
  * - GPS position and time tracking
  * - Long-range telemetry via LoRa radio
  * - Autonomous parachute deployment based on flight profile
@@ -45,7 +45,7 @@
 
 #include "config.h"             // Global configuration and constants
 #include "bmp280_sensor.h"      // Barometric pressure and altitude sensor
-#include "mpu6050_sensor.h"     // Inertial measurement unit (IMU)
+#include "mpu6050_sensor.h"     // Inertial measurement unit (IMU - legacy)
 #include "gps_module.h"         // GPS positioning and timing
 #include "lora_module.h"        // LoRa long-range radio communication
 #include "filesystem_module.h"  // LittleFS data storage
@@ -53,6 +53,22 @@
 #include "buzzer_module.h"      // Audio feedback and alerts
 #include "server_module.h"      // WiFi access point and web server
 #include "telemetry_module.h"   // Data aggregation and logging
+#include "sensors/LSM6DS3Sensor.h"  // New IMU sensor (v2.0 migration)
+
+//==============================================================================
+// GLOBAL SENSOR OBJECTS (v2.0 - OOP Migration)
+//==============================================================================
+
+/**
+ * @brief Global instance of LSM6DS3 IMU sensor
+ * 
+ * This sensor is used by telemetry_module.cpp for IMU data collection.
+ * If not initialized or not ready, the system falls back to legacy MPUData().
+ * 
+ * @see LSM6DS3Sensor class in sensors/LSM6DS3Sensor.h
+ * @see telemetry_module.cpp for usage
+ */
+LSM6DS3Sensor* g_lsm_sensor = nullptr;
 
 //==============================================================================
 // SETUP - ONE-TIME INITIALIZATION
@@ -83,6 +99,8 @@
  */
 void setup()
 {
+  initRuntimeConfig();   // Initialize mutable config (SSID buffer and defaults)
+
   //----------------------------------------------------------------------------
   // Communication and Hardware Initialization
   //----------------------------------------------------------------------------
@@ -158,7 +176,21 @@ void setup()
     printBoth("All modules initialized successfully!");  // Success message
     buzzSignal("Success");                                // Audio confirmation (3 beeps)
   }
-}
+  
+  //----------------------------------------------------------------------------
+  // LSM6DS3 Initialization (v2.0 Migration)
+  //----------------------------------------------------------------------------
+  
+  // Initialize new LSM6DS3 IMU sensor if available
+  // This is a v2.0 feature that will eventually replace MPU6050
+  g_lsm_sensor = new LSM6DS3Sensor();
+  if (g_lsm_sensor != nullptr && g_lsm_sensor->begin()) {
+    printBoth("LSM6DS3 IMU initialized successfully!");
+  } else {
+    printBoth("LSM6DS3 initialization failed - will use MPU6050 fallback");
+    delete g_lsm_sensor;
+    g_lsm_sensor = nullptr;
+  }
 
 //==============================================================================
 // MAIN LOOP - CONTINUOUS OPERATION
@@ -204,6 +236,15 @@ void loop()
   // Execute data logging and control logic at fixed interval (200ms)
   if (current_millis - previous_millis >= INTERVAL)
   {
+    //--------------------------------------------------------------------------
+    // Sensor Updates
+    //--------------------------------------------------------------------------
+    
+    // Update LSM6DS3 sensor if available (v2.0 migration)
+    if (g_lsm_sensor != nullptr) {
+      g_lsm_sensor->update();
+    }
+    
     //--------------------------------------------------------------------------
     // Sensor Reading and Calculation
     //--------------------------------------------------------------------------

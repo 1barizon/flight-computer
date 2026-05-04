@@ -8,11 +8,15 @@
  * entire data pipeline from sensor reading to storage and transmission.
  * 
  * Data flow:
- * 1. Aggregate sensor data from BMP280, MPU6050, and GPS modules
+ * 1. Aggregate sensor data from BMP280/BMP585, LSM6DS3/MPU6050, and GPS modules
  * 2. Format data into CSV string with timestamp and metadata
  * 3. Transmit via Serial monitor and LoRa radio
  * 4. Store to LittleFS filesystem for post-flight analysis
  * 5. Provide audio feedback via buzzer
+ * 
+ * Sensor migration (v2.0):
+ * - Primary: LSM6DS3 (new IMU sensor)
+ * - Fallback: MPU6050 (legacy sensor for compatibility)
  * 
  * Telemetry format (CSV):
  * TEAM_ID,millis,count,altp,temp,umi,p,gp,gr,gy,ap,ar,ay,hora,data,alt,lat,lon,sat,pqd
@@ -46,7 +50,7 @@
  * Incremented with each data logging operation. Used to track packet sequence
  * and identify missing data in post-flight analysis. Resets on power cycle.
  */
-int packet_count = 0;
+extern int packet_count;
 
 /**
  * @brief Previous timestamp in milliseconds
@@ -54,7 +58,7 @@ int packet_count = 0;
  * Stores the last time data was logged, used in main loop to control
  * logging interval (typically 200ms as defined by INTERVAL in config.h).
  */
-unsigned long previous_millis = 0;
+extern unsigned long previous_millis;
 
 //==============================================================================
 // DATA AGGREGATION
@@ -67,9 +71,14 @@ unsigned long previous_millis = 0;
  * comma-separated string ready for transmission and storage. This function
  * calls the data retrieval functions from each sensor module.
  * 
+ * Sensor selection (v2.0 migration):
+ * - IMU: Uses LSM6DS3Sensor if available and ready; falls back to MPUData() (MPU6050)
+ * - Barometer: BMPData() from BMP280
+ * - GPS: GPSData()
+ * 
  * Data sources:
  * - BMPData(): Altitude (pressure-based), temperature, humidity, pressure
- * - MPUData(): Gyroscope (x,y,z), Accelerometer (x,y,z)
+ * - LSM6DS3Sensor::getData() OR MPUData(): Gyroscope (x,y,z), Accelerometer (x,y,z)
  * - GPSData(): Time, date, altitude (GPS), latitude, longitude, satellites
  * 
  * @return Complete telemetry string in CSV format combining all sensor data
@@ -77,14 +86,12 @@ unsigned long previous_millis = 0;
  * @note The returned string does NOT include TEAM_ID, timestamp, count, or parachute status
  * @note These fields are added later by logData() function
  * 
+ * @see LSM6DS3Sensor::getData() in sensors/LSM6DS3Sensor.h
  * @see BMPData() in bmp280_sensor.h
- * @see MPUData() in mpu6050_sensor.h
+ * @see MPUData() in mpu6050_sensor.h (legacy fallback)
  * @see GPSData() in gps_module.h
  */
-String getDataString()
-{
-  return BMPData() + "," + MPUData() + "," + GPSData();
-}
+String getDataString();
 
 //==============================================================================
 // DUAL-CHANNEL OUTPUT
@@ -106,17 +113,12 @@ String getDataString()
  * 
  * @note Message is sent to Serial at configured baud rate (115200)
  * @note LoRa transmission may take several milliseconds depending on message length
- * @note Buzzer beep provides audio confirmation of transmission
+ * @note Optional buzzer beep provides audio confirmation for low-rate events
  * 
  * @see sendLoRa() in lora_module.h for LoRa transmission details
  * @see buzzSignal() in buzzer_module.h for audio feedback
  */
-void printBoth(const String &message)
-{
-  Serial.println(message);     // Output to USB serial connection
-  sendLoRa(message);           // Transmit via LoRa radio
-  buzzSignal("Beep");          // Audio confirmation of transmission
-}
+void printBoth(const String &message, bool beep = true);
 
 //==============================================================================
 // TELEMETRY LOGGING
@@ -171,22 +173,6 @@ void printBoth(const String &message)
  * @see appendFile() in filesystem_module.h for data storage
  * @see TEAM_ID and file_dir are defined in config.h
  */
-void logData(unsigned long current_millis, bool parachute_deployed)
-{
-  // Collect all sensor readings in CSV format
-  String readings = getDataString();
-  
-  // Assemble complete telemetry packet with metadata
-  String data_string = TEAM_ID + "," + String(current_millis) + "," + 
-                       String(packet_count) + "," + readings + "," + 
-                       parachute_deployed;
-  
-  // Transmit through multiple channels and store to filesystem
-  printBoth(data_string);              // Send via Serial and LoRa (with beep)
-  appendFile(file_dir, data_string);   // Append to data file on LittleFS
-  
-  // Increment packet counter for next transmission
-  packet_count++;
-}
+void logData(unsigned long current_millis, bool parachute_deployed);
 
 #endif // TELEMETRY_MODULE_H

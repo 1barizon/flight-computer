@@ -58,7 +58,7 @@ firmware/
 │
 ├── flight/                         # 🆕 FSM + FreeRTOS Tasks
 │   ├── SensorData.h                # Shared structs (SensorData, LogMessage)
-│   ├── FlightStateMachine.h/cpp    # FSM - 7 states + transitions (VALIDADO)
+│   ├── FlightStateMachine.h/cpp    # FSM - 4 states + transitions (SIMPLIFICADO)
 │   ├── FlightControlTask.h/cpp     # Task 1 - FSM + Safety (50Hz, Core 1)
 │   ├── TelemetryTask.h/cpp         # Task 2 - Logging + TX (5Hz, Core 0)
 │   └── LoggerTask.h/cpp            # Task 3 - Debug logger (low priority)
@@ -110,95 +110,47 @@ firmware/
 └────────────────────────────────────────────────────────────┘
 ```
 
-### FSM - Estados de Voo (⚠️ VALIDADO COM DADOS REAIS)
+### FSM - Estados de Voo (4 estados - versão simplificada)
 
-**CRÍTICO:** Esta FSM foi validada com 1,873 pontos de telemetria real. **NÃO ALTERE thresholds** sem consultar `extras/FSM_tester/FSM_Tester.py`.
+**Nota:** A FSM adotada para a v2.0 é a versão **simplificada de 4 estados**, usada
+no código atual (IDLE, ASCENT, DESCENT, LANDED). A validação por dados reais
+continua sendo feita, porém sem a granularidade do modelo anterior de 7 estados.
 
 ```
 ┌─────────┐
 │  IDLE   │  Pré-lançamento, aguardando no solo
 └────┬────┘
-     │ Trigger: totalAccel > 15.0 m/s²
+     │ Trigger: aceleração total acima do limiar
      ▼
 ┌──────────┐
-│ LIFTOFF  │  Subida motorizada, alta aceleração
+│ ASCENT   │  Subida (motorizada ou balística)
 └────┬─────┘
-     │ Trigger: (az < -8.0 m/s²) OR (totalAccel < 2.0 m/s²)
-     │          AND (height > 5m) AND (vz > 0.5 m/s)
+     │ Trigger: velocidade vertical negativa persistente
      ▼
 ┌──────────┐
-│ BURNOUT  │  Costa balística (sem motor)
+│ DESCENT  │  Queda/descida controlada
 └────┬─────┘
-     │ Trigger: |vz| < 1.0 m/s AND az < -0.1 m/s²
-     ▼
-┌──────────┐
-│  APOGEE  │  Altitude máxima atingida
-└────┬─────┘  🪂 DEPLOY PARACHUTE! (estado crítico)
-     │ Trigger: totalAccel < 11.5 m/s² AND vz < -5 m/s
-     │          AND height > 5m
-     ▼
-┌───────────┐
-│ FREEFALL  │  Queda rápida pós-apogeu
-└────┬──────┘
-     │ Trigger: altitude ≤ 100m AND vz < 0
-     ▼
-┌────────────┐
-│ PARACHUTE  │  Descida controlada com paraquedas
-└────┬───────┘
-     │ Trigger: [Implementação futura]
+     │ Trigger: baixa velocidade + altitude estável
      ▼
 ┌──────────┐
 │  LANDED  │  Pouso detectado, fim do voo
 └──────────┘
 ```
 
-**Thresholds Validados (config.h):**
-```cpp
-// ⚠️ ATENÇÃO: Valores validados com dados reais de voo
-// Referência: extras/FSM_tester/FSM_Tester.py
-
-// Estado LIFTOFF (linha 137 do Python)
-#define LIFTOFF_TOTAL_ACCEL_THRESHOLD  15.0   // m/s²
-
-// Estado BURNOUT (linhas 47-59 do Python)
-#define BURNOUT_AZ_THRESHOLD          -8.0    // m/s²
-#define BURNOUT_TOTAL_ACCEL_MIN        2.0    // m/s²
-#define BURNOUT_MIN_HEIGHT             5.0    // m
-#define BURNOUT_MIN_VZ                 0.5    // m/s
-
-// Estado APOGEE (linhas 72-79 do Python)
-#define APOGEE_VZ_THRESHOLD            1.0    // m/s (absoluto)
-#define APOGEE_AZ_THRESHOLD           -0.1    // m/s²
-
-// Estado FREEFALL (linhas 95-113 do Python)
-#define FREEFALL_TOTAL_ACCEL_MAX      11.5    // m/s²
-#define FREEFALL_VZ_THRESHOLD         -5.0    // m/s
-#define FREEFALL_MIN_HEIGHT            5.0    // m
-
-// Estado PARACHUTE (linhas 130-153 do Python)
-#define PARACHUTE_ALTITUDE_THRESHOLD  100.0   // m
-#define PARACHUTE_VZ_NEGATIVE          0.0    // m/s (vz < 0)
-
-// Validações de Segurança
-#define SAFETY_CHECK_NAN_INF    true  // Obrigatório em todas detecções
-#define SAFETY_MIN_ALTITUDE     0.0   // m (guard contra false positives)
-```
-
 **Validações de Segurança OBRIGATÓRIAS:**
 ```cpp
 // CRÍTICO: Todas as funções de detecção devem incluir:
-// 1. Verificação NaN/Inf (linhas 34-35, 72-73, 95-96, 130-131 do Python)
+// 1. Verificação NaN/Inf
 if (!std::isfinite(vz) || !std::isfinite(az) || !std::isfinite(totalAccel)) {
     return false;  // Dados inválidos
 }
 
-// 2. State Guards - condições mínimas para evitar false positives
-// Exemplo BURNOUT (linhas 47-48):
-if (height <= BURNOUT_MIN_HEIGHT || vz <= BURNOUT_MIN_VZ) {
-    return false;  // Muito baixo/lento para ser burnout
+// 2. Guards mínimos para evitar false positives
+if (height <= SAFETY_MIN_ALTITUDE) {
+    return false;
 }
 
-// 3. Clipping de Velocidade Vertical (linha 201 do Python)
+// 3. Clipping de Velocidade Vertical
 vz = constrain(vz, -200.0, 200.0);
 ```
 
@@ -300,7 +252,7 @@ QueueHandle_t logQueue;
 | 3 | BMP585Sensor (classe) | 2 h | ⏳ Pendente |
 | 4 | LSM6DS3Sensor (classe) | 1.5 h | ⏳ Pendente |
 | 5 | GPSModule (classe) | 1 h | ⏳ Pendente |
-| 6 | FSM - Máquina de estados | **4 h** | ⏳ Pendente |
+| 6 | FSM - Máquina de estados (4 estados) | **4 h** | ⏳ Pendente |
 | 7 | FreeRTOS Tasks | 4 h | ⏳ Pendente |
 | 8 | Integração firmware.ino | 2 h | ⏳ Pendente |
 | 9 | Adaptar módulos dependentes | 1.5 h | ⏳ Pendente |
@@ -394,12 +346,9 @@ public:
 
 enum FlightState {
   IDLE = 0,
-  LIFTOFF = 1,
-  BURNOUT = 2,
-  APOGEE = 3,
-  FREEFALL = 4,
-  PARACHUTE = 5,
-  LANDED = 6
+  ASCENT = 1,
+  DESCENT = 2,
+  LANDED = 3
 };
 
 struct SensorData {
@@ -636,16 +585,16 @@ public:
 
 ---
 
-### FASE 6: FSM - Máquina de Estados ⏱️ 4h
+### FASE 6: FSM - Máquina de Estados (4 estados) ⏱️ 4h
 
 **Status:** ⏳ Pendente
 
-**⚠️ ATENÇÃO: Esta é a fase mais crítica - tradução linha-por-linha do Python para C++**
+**⚠️ ATENÇÃO: Esta é a fase mais crítica - adaptação da lógica validada para 4 estados**
 
 **Objetivos:**
-- [ ] Implementar FSM com **7 estados** (IDLE → LIFTOFF → BURNOUT → APOGEE → FREEFALL → PARACHUTE → LANDED)
-- [ ] Traduzir lógica de detecção do `FSM_Tester.py` **linha por linha**
-- [ ] Implementar validações de segurança obrigatórias (NaN/Inf, state guards)
+- [ ] Implementar FSM com **4 estados** (IDLE → ASCENT → DESCENT → LANDED)
+- [ ] Adaptar a lógica validada do `FSM_Tester.py` para o modelo simplificado
+- [ ] Implementar validações de segurança obrigatórias (NaN/Inf, guards mínimos)
 - [ ] Testar transições com dados simulados
 
 **Arquivos:** `flight/FlightStateMachine.h` + `flight/FlightStateMachine.cpp`
@@ -660,19 +609,15 @@ private:
   LSM6DS3Sensor* imu;
   
   // Contadores de debounce/confirmação
-  uint8_t liftoffCounter;
-  unsigned long apogeeDetectedTime;
+  uint8_t ascentCounter;
   
   void checkTransitions();
   void transitionTo(FlightState newState);
   
-  // Funções de detecção (traduzidas do Python)
-  bool detectLiftoff();     // Python linhas 127-138
-  bool detectBurnout();     // Python linhas 34-60
-  bool detectApogee();      // Python linhas 68-80
-  bool detectFreefall();    // Python linhas 86-114
-  bool detectParachute();   // Python linhas 121-154
-  bool detectLanded();      // [Implementação futura]
+  // Funções de detecção (adaptadas para 4 estados)
+  bool detectAscent();
+  bool detectDescent();
+  bool detectLanded();
 
 public:
   FlightStateMachine(BMP585Sensor* b, LSM6DS3Sensor* i);
@@ -684,178 +629,73 @@ public:
 };
 ```
 
-**Implementação das Funções de Detecção (Referência Completa):**
+**Implementação das Funções de Detecção (Referência Simplificada):**
 
-**`detectLiftoff()` - Python linhas 127-138:**
+**`detectAscent()` - exemplo simplificado:**
 ```cpp
-bool FlightStateMachine::detectLiftoff() {
-  // LINHA 130-131: Validação de segurança
+bool FlightStateMachine::detectAscent() {
   float totalAccel = imu->getTotalAccel();
   if (!std::isfinite(totalAccel)) {
     return false;
   }
-  
-  // LINHA 137: Threshold validado
-  if (totalAccel > LIFTOFF_TOTAL_ACCEL_THRESHOLD) {  // 15.0 m/s²
-    liftoffCounter++;
-    if (liftoffCounter >= 3) {  // Debounce: 3 leituras consecutivas
+
+  if (totalAccel > LIFTOFF_TOTAL_ACCEL_THRESHOLD) {
+    ascentCounter++;
+    if (ascentCounter >= 3) {
       return true;
     }
   } else {
-    liftoffCounter = 0;
+    ascentCounter = 0;
   }
-  
+
   return false;
 }
 ```
 
-**`detectBurnout()` - Python linhas 34-60:**
+**`detectDescent()` - exemplo simplificado:**
 ```cpp
-bool FlightStateMachine::detectBurnout() {
-  // LINHA 34-35: Validação de segurança
-  float az = imu->getAccelZ();
-  float totalAccel = imu->getTotalAccel();
+bool FlightStateMachine::detectDescent() {
   float vz = baro->getVerticalVelocity();
-  float height = baro->getAltitude();
-  
-  if (!std::isfinite(vz) || !std::isfinite(az) || !std::isfinite(totalAccel)) {
+  if (!std::isfinite(vz)) {
     return false;
   }
-  
-  // LINHA 47-48: State guards
-  if (height <= BURNOUT_MIN_HEIGHT || vz <= BURNOUT_MIN_VZ) {
-    return false;
-  }
-  
-  // LINHA 53: Condição principal (OR lógico)
-  bool condition1 = (az < BURNOUT_AZ_THRESHOLD);  // -8.0 m/s²
-  bool condition2 = (totalAccel < BURNOUT_TOTAL_ACCEL_MIN);  // 2.0 m/s²
-  
-  return (condition1 || condition2);
+
+  return (vz < 0.0f);
 }
 ```
-
-**`detectApogee()` - Python linhas 68-80:**
-```cpp
-bool FlightStateMachine::detectApogee() {
-  // LINHA 72-73: Validação de segurança
-  float vz = baro->getVerticalVelocity();
-  float az = imu->getAccelZ();
   
-  if (!std::isfinite(vz) || !std::isfinite(az)) {
-    return false;
-  }
-  
-  // LINHA 76: Condição (valor absoluto de Vz)
-  if (abs(vz) < APOGEE_VZ_THRESHOLD &&  // 1.0 m/s
-      az < APOGEE_AZ_THRESHOLD) {        // -0.1 m/s²
-    return true;
-  }
-  
-  return false;
-}
 ```
 
-**`detectFreefall()` - Python linhas 86-114:**
-```cpp
-bool FlightStateMachine::detectFreefall() {
-  // LINHA 95-96: Validação de segurança
-  float totalAccel = imu->getTotalAccel();
-  float vz = baro->getVerticalVelocity();
-  float height = baro->getAltitude();
-  
-  if (!std::isfinite(totalAccel) || !std::isfinite(vz)) {
-    return false;
-  }
-  
-  // LINHA 108-109: State guards
-  if (height <= FREEFALL_MIN_HEIGHT) {
-    return false;
-  }
-  
-  // LINHA 112: Condição principal (AND lógico)
-  if (totalAccel < FREEFALL_TOTAL_ACCEL_MAX &&  // 11.5 m/s²
-      vz < FREEFALL_VZ_THRESHOLD &&              // -5.0 m/s
-      height > FREEFALL_MIN_HEIGHT) {            // 5.0 m
-    return true;
-  }
-  
-  return false;
-}
-```
+**Lógica de Transições (4 estados):**
 
-**`detectParachute()` - Python linhas 121-154:**
-```cpp
-bool FlightStateMachine::detectParachute() {
-  // LINHA 130-131: Validação de segurança
-  float altitude = baro->getAltitude();
-  float vz = baro->getVerticalVelocity();
-  
-  if (!std::isfinite(altitude) || !std::isfinite(vz)) {
-    return false;
-  }
-  
-  // LINHA 152: Condição principal
-  if (altitude <= PARACHUTE_ALTITUDE_THRESHOLD &&  // 100.0 m
-      vz < PARACHUTE_VZ_NEGATIVE) {                // vz < 0 (descendo)
-    return true;
-  }
-  
-  return false;
-}
-```
-
-**Lógica de Transições:**
-
-| De | Para | Função | Linha Python |
-|----|------|--------|--------------|
-| IDLE | LIFTOFF | `detectLiftoff()` | 127-138 |
-| LIFTOFF | BURNOUT | `detectBurnout()` | 34-60 |
-| BURNOUT | APOGEE | `detectApogee()` | 68-80 |
-| APOGEE | FREEFALL | `detectFreefall()` | 86-114 |
-| FREEFALL | PARACHUTE | `detectParachute()` | 121-154 |
-| PARACHUTE | LANDED | `detectLanded()` | [Implementação futura] |
+| De | Para | Função |
+|----|------|--------|
+| IDLE | ASCENT | `detectAscent()` |
+| ASCENT | DESCENT | `detectDescent()` |
+| DESCENT | LANDED | `detectLanded()` |
 
 **Loop Principal (`checkTransitions()`):**
 ```cpp
 void FlightStateMachine::checkTransitions() {
   switch (currentState) {
     case IDLE:
-      if (detectLiftoff()) {
-        transitionTo(LIFTOFF);
+      if (detectAscent()) {
+        transitionTo(ASCENT);
       }
       break;
-      
-    case LIFTOFF:
-      if (detectBurnout()) {
-        transitionTo(BURNOUT);
+
+    case ASCENT:
+      if (detectDescent()) {
+        transitionTo(DESCENT);
       }
       break;
-      
-    case BURNOUT:
-      if (detectApogee()) {
-        transitionTo(APOGEE);
-      }
-      break;
-      
-    case APOGEE:
-      if (detectFreefall()) {
-        transitionTo(FREEFALL);
-      }
-      break;
-      
-    case FREEFALL:
-      if (detectParachute()) {
-        transitionTo(PARACHUTE);
-      }
-      break;
-      
-    case PARACHUTE:
+
+    case DESCENT:
       if (detectLanded()) {
         transitionTo(LANDED);
       }
       break;
-      
+
     case LANDED:
       // Estado final
       break;
@@ -864,9 +704,9 @@ void FlightStateMachine::checkTransitions() {
 ```
 
 **Validação:**
-- [ ] Todas as 6 transições funcionam (IDLE→PARACHUTE validadas, LANDED pendente)
+- [ ] Todas as 3 transições funcionam (IDLE→ASCENT→DESCENT→LANDED)
 - [ ] Validações de segurança (NaN/Inf) impedem crashes
-- [ ] State guards evitam false positives
+- [ ] Guards mínimos evitam false positives
 - [ ] Simulação com dados do CSV (13_30_11-Dados.csv)
 - [ ] Logs de transição claros com timestamps
 
@@ -901,11 +741,11 @@ void taskFlightControl(void* parameter) {
     imuSensor->update();
     flightFSM->update();
     
-    if (flightFSM->getState() == APOGEE && !parachute_deployed) {
+    if (flightFSM->getState() == DESCENT && !parachute_deployed) {
       deployParachute();
       parachute_deployed = true;
       
-      LogMessage log = {"[CRITICAL] Parachute deployed at APOGEE!", millis(), 1, 2};
+      LogMessage log = {"[CRITICAL] Parachute deployed at DESCENT!", millis(), 1, 2};
       xQueueSend(logQueue, &log, 0);
     }
     
@@ -1094,14 +934,12 @@ void loop() {
 - [ ] GPS recebe fix e coordenadas
 - [ ] Calibração de base_pressure funciona
 
-**FSM:**
-- [ ] Transição IDLE → LIFTOFF (totalAccel > 15.0 m/s²)
-- [ ] Transição LIFTOFF → BURNOUT (az < -8.0 OR totalAccel < 2.0)
-- [ ] Transição BURNOUT → APOGEE (|vz| < 1.0 AND az < -0.1)
-- [ ] Transição APOGEE → FREEFALL (totalAccel < 11.5 AND vz < -5.0)
-- [ ] Transição FREEFALL → PARACHUTE (altitude ≤ 100 AND vz < 0)
+**FSM (4 estados):**
+- [ ] Transição IDLE → ASCENT (totalAccel > limiar)
+- [ ] Transição ASCENT → DESCENT (vz < 0 persistente)
+- [ ] Transição DESCENT → LANDED (vz ~ 0 e altitude estável)
 - [ ] Validações de segurança (NaN/Inf) funcionando
-- [ ] State guards evitando false positives
+- [ ] Guards mínimos evitando false positives
 
 **FreeRTOS:**
 - [ ] Task FSM roda a 50Hz preciso
@@ -1116,7 +954,7 @@ void loop() {
 - [ ] Logs gravados em `/logs/HHMMSS-log.txt` (se habilitado)
 
 **Paraquedas:**
-- [ ] Deploy aciona no estado APOGEE
+- [ ] Deploy aciona no estado DESCENT
 - [ ] Servo move para posição correta
 - [ ] Buzzer toca sinal "Activated"
 
@@ -1236,8 +1074,8 @@ void loop() {
 - ✅ Plano de 9 fases criado
 - ✅ Estimativas de tempo e recursos
 
-### 2026-03-18 - Atualização v2.0 (FSM Validado)
-- ✅ FSM corrigido para **7 estados** (adicionado PARACHUTE)
+### 2026-03-18 - Atualização v2.0 (FSM Simplificada)
+- ✅ FSM alinhado para **4 estados** (IDLE → ASCENT → DESCENT → LANDED)
 - ✅ Thresholds validados com dados reais (1,873 pontos de telemetria)
 - ✅ Referências linha-por-linha ao código Python
 - ✅ Validações de segurança obrigatórias documentadas
@@ -1300,9 +1138,9 @@ void loop() {
 
 ---
 
-## ⚠️ ATUALIZAÇÃO v2.0: FSM Validado com Dados Reais
+## ⚠️ ATUALIZAÇÃO v2.0: FSM Simplificada (4 Estados)
 
-**IMPORTANTE:** Este documento foi atualizado para refletir o **FSM de 7 estados** validado com dados reais de voo.
+**IMPORTANTE:** Este documento foi atualizado para refletir a **FSM de 4 estados** adotada na v2.0.
 
 **Fonte de Validação:**
 - Arquivo: `extras/FSM_tester/FSM_Tester.py` (implementação Python completa)
@@ -1310,7 +1148,7 @@ void loop() {
 - Documentação: `extras/FSM_tester/explicacao.md` (lógica completa com referências de linha)
 
 **Mudanças principais:**
-1. FSM agora possui **7 estados** (não 6): `IDLE → LIFTOFF → BURNOUT → APOGEE → FREEFALL → PARACHUTE → LANDED`
-2. Thresholds validados com dados reais (não estimativas)
-3. Validações de segurança obrigatórias (NaN/Inf checks, state guards)
-4. Lógica linha-por-linha documentada para tradução C++
+1. FSM agora possui **4 estados**: `IDLE → ASCENT → DESCENT → LANDED`
+2. Estados intermediários do modelo anterior de 7 estados foram consolidados
+3. Validações de segurança obrigatórias permanecem (NaN/Inf checks, guards mínimos)
+4. Lógica foi simplificada para facilitar integração na arquitetura atual

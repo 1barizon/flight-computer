@@ -158,33 +158,4 @@ extern String file_name;
  */
 extern String file_dir;
 
-//==============================================================================
-// WEB SERVER CONFIGURATION
-//==============================================================================
-
-/**
- * WiFi network name (SSID) for access point
- * Concatenates "Server" with team ID
- */
-extern String ssid_str;
-
-/**
- * SSID in C-string format for WiFi library compatibility
- */
-extern const char *ssid;
-
-/**
- * WiFi network password
- * WARNING: Change to a more secure password in production environment
- */
-extern const char *password;
-
-/**
- * @brief Initialize mutable runtime configuration values
- *
- * Must be called once in setup() before modules that consume runtime
- * configuration (e.g., WiFi AP setup).
- */
-void initRuntimeConfig();
-
 #endif // CONFIG_H

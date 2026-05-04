@@ -14,7 +14,6 @@
  * - Long-range telemetry via LoRa radio
  * - Autonomous parachute deployment based on flight profile
  * - Data logging to onboard flash storage (LittleFS)
- * - WiFi access point for data retrieval and management
  * - Audio feedback via buzzer for system status
  * 
  * Flight phases:
@@ -23,7 +22,7 @@
  * 3. Ascent: High-frequency data logging during powered flight
  * 4. Apogee detection: Tracking maximum altitude
  * 5. Descent: Parachute deployment and controlled landing
- * 6. Recovery: Post-flight data access via WiFi
+ * 6. Recovery: Post-flight data access via storage retrieval
  * 
  * @note All configuration parameters are in config.h
  * @note Data logging interval is 200ms (5Hz) as defined by INTERVAL
@@ -51,7 +50,6 @@
 #include "filesystem_module.h"  // LittleFS data storage
 #include "parachute_module.h"   // Parachute deployment control
 #include "buzzer_module.h"      // Audio feedback and alerts
-#include "server_module.h"      // WiFi access point and web server
 #include "telemetry_module.h"   // Data aggregation and logging
 #include "sensors/LSM6DS3Sensor.h"  // New IMU sensor (v2.0 migration)
 
@@ -83,7 +81,6 @@ LSM6DS3Sensor* g_lsm_sensor = nullptr;
  * 3. Startup delay for system stabilization
  * 4. Acquire GPS time for unique filename generation
  * 5. Initialize filesystem and create data file with CSV header
- * 6. Start WiFi access point and web server
  * 7. Initialize all sensors (BMP280, MPU6050) and LoRa radio
  * 8. Provide audio feedback on initialization status
  * 
@@ -99,8 +96,6 @@ LSM6DS3Sensor* g_lsm_sensor = nullptr;
  */
 void setup()
 {
-  initRuntimeConfig();   // Initialize mutable config (SSID buffer and defaults)
-
   //----------------------------------------------------------------------------
   // Communication and Hardware Initialization
   //----------------------------------------------------------------------------
@@ -152,12 +147,6 @@ void setup()
     delay(3000);            // Allow time to read error message
     ESP.restart();          // Restart system to retry initialization
   }
-
-  //----------------------------------------------------------------------------
-  // WiFi Access Point and Web Server Initialization
-  //----------------------------------------------------------------------------
-  
-  setupServer();  // Create WiFi AP and start web server for data access
 
   //----------------------------------------------------------------------------
   // Sensor and Communication Module Initialization
@@ -217,7 +206,7 @@ void setup()
  * - AND either: altitude below threshold OR descent velocity exceeds threshold
  * - Once deployed, parachute remains deployed (no retraction)
  * 
- * @note The web server runs asynchronously and doesn't need to be called here
+  * @note Data access happens via storage retrieval workflows
  * @note GPS updates happen automatically via hardware serial interrupts
  * @note Loop frequency is controlled by INTERVAL constant in config.h
  * 

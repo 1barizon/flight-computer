@@ -68,7 +68,6 @@ firmware/
     ├── filesystem_module.h         # LittleFS operations
     ├── lora_module.h               # LoRa transmission
     ├── parachute_module.h          # Servo + deployment logic
-    └── server_module.h             # WiFi AP + Web interface
 ```
 
 ### Diagrama de Tasks FreeRTOS
@@ -169,7 +168,6 @@ vz = constrain(vz, -200.0, 200.0);
 ### Dependências
 - `Adafruit_Sensor` (unified sensor interface)
 - `Adafruit_BusIO` (I2C/SPI abstraction)
-- `ESPAsyncWebServer` (web interface)
 - `ArduinoJson` (telemetry formatting)
 - `LoRa` (wireless communication)
 
@@ -181,7 +179,6 @@ Adafruit LSM6DS
 Adafruit Unified Sensor
 Adafruit BusIO
 TinyGPSPlus
-ESPAsyncWebServer
 ArduinoJson
 LoRa
 ```
@@ -283,7 +280,6 @@ mv buzzer_module.h modules/
 mv filesystem_module.h modules/
 mv lora_module.h modules/
 mv parachute_module.h modules/
-mv server_module.h modules/
 
 # 4. Instalar bibliotecas (via Arduino IDE Library Manager)
 # - Adafruit_BMP5xx
@@ -845,7 +841,6 @@ xTaskCreatePinnedToCore(taskLogger, "Logger", 4096, NULL, 1, NULL, 0);
 #include "modules/filesystem_module.h"
 #include "modules/lora_module.h"
 #include "modules/parachute_module.h"
-#include "modules/server_module.h"
 
 BMP585Sensor* baroSensor;
 LSM6DS3Sensor* imuSensor;
@@ -958,11 +953,6 @@ void loop() {
 - [ ] Servo move para posição correta
 - [ ] Buzzer toca sinal "Activated"
 
-**WiFi Server:**
-- [ ] Access Point criado
-- [ ] Web interface acessível
-- [ ] Download de arquivos funciona
-- [ ] Deletar arquivos funciona
 
 ### Testes de Estresse
 

@@ -1,10 +1,23 @@
 # GitHub Issues - Refatoração v2.0 Flight Computer
 
 **Projeto**: Flight Computer - Team #100  
-**Branch**: `feature/oop-freertos-refactor`  
+**Branch**: `feature/oop-freertos-refactor` (rascunho)  
 **Total de Issues**: 14  
 **Tempo Total Estimado**: ~22 horas (atualizado após simplificação da Issue #6)
-**Issues Críticas**: #4, #6, #7, #12
+**Issues Críticas**: #4, #6, #7, #12 (rascunho)
+
+---
+
+## Atualizacao (status real no GitHub)
+
+**Issues abertas no GitHub hoje:**
+- #7: Implementar Classe GPSModule
+- #8: Migrar FSM Testada para Classe OOP - CRITICO
+
+**Observacoes:**
+- As issues abaixo sao o backlog de refactor (rascunho planejado).
+- O WiFi server foi removido do firmware e nao deve mais ser considerado em novas issues.
+- A FSM de 4 estados sera implementada somente na issue #8.
 
 ---
 
@@ -33,7 +46,6 @@ Esta é a base fundamental para toda a refatoração OOP + FreeRTOS.
   - `filesystem_module.h`
   - `lora_module.h`
   - `parachute_module.h`
-  - `server_module.h`
 - Instalar bibliotecas via Arduino Library Manager:
   - `Adafruit_BMP5xx` (para BMP585)
   - `Adafruit_LSM6DS` (para LSM6DS3)
@@ -488,9 +500,7 @@ Atualizar os módulos procedurais existentes que dependem de variáveis globais 
 - Atualizar `modules/telemetry_module.h`:
   - Usar `SensorData` struct ao invés de funções individuais
   - Adaptar para receber dados consolidados
-- Atualizar `modules/server_module.h`:
-  - Acessar dados via getters dos objetos sensor
-  - Remover acesso direto a variáveis globais
+- Remover referencias ao servidor WiFi (funcionalidade removida)
 - Verificar que todos os módulos ainda compilam
 - Testar integração com o sistema principal
 
@@ -498,7 +508,7 @@ Atualizar os módulos procedurais existentes que dependem de variáveis globais 
 
 - Todos os módulos compilam sem erros
 - Não há mais dependências de variáveis globais antigas
-- Funcionalidade dos módulos mantida (telemetria, servidor, paraquedas)
+- Funcionalidade dos módulos mantida (telemetria, paraquedas)
 - Integração com firmware.ino funciona corretamente
 
 ### Referências
@@ -567,7 +577,7 @@ Testar o firmware completo v2.0 em hardware real ESP32 com todos os sensores con
 - Testar transições da FSM manualmente (simulando aceleração/queda)
 - Verificar transmissão de telemetria LoRa
 - Verificar logging para LittleFS
-- Verificar servidor WiFi (se aplicável)
+- Verificar exportacao de arquivos via fluxo atual de dados
 - Executar testes de stress (múltiplas horas de operação)
 
 ### Critérios de Aceitação
@@ -576,7 +586,7 @@ Testar o firmware completo v2.0 em hardware real ESP32 com todos os sensores con
 - FSM responde a movimentos físicos do ESP32
 - Transmissão LoRa é recebida por ground station
 - Arquivos CSV são criados e contêm dados válidos
-- Servidor WiFi é acessível (se implementado)
+- Fluxo de dados pós-voo acessível via armazenamento
 - Sistema roda por múltiplas horas sem crashes
 
 ### Referências
@@ -609,7 +619,7 @@ Testar o firmware completo v2.0 em hardware real ESP32 com todos os sensores con
 - Testar transições da FSM manualmente (simulando aceleração/queda)
 - Verificar transmissão de telemetria LoRa
 - Verificar logging para LittleFS
-- Verificar servidor WiFi (se aplicável)
+- Verificar exportacao de arquivos via fluxo atual de dados
 - Executar testes de stress (múltiplas horas de operação)
 
 ### Critérios de Aceitação
@@ -618,7 +628,7 @@ Testar o firmware completo v2.0 em hardware real ESP32 com todos os sensores con
 - FSM responde a movimentos físicos do ESP32
 - Transmissão LoRa é recebida por ground station
 - Arquivos CSV são criados e contêm dados válidos
-- Servidor WiFi é acessível (se implementado)
+- Fluxo de dados pós-voo acessível via armazenamento
 - Sistema roda por múltiplas horas sem crashes
 
 ### Referências
@@ -665,7 +675,7 @@ Atualizar toda a documentação do projeto para refletir a nova arquitetura v2.0
 
 ---
 
-## Ordem de Implementação Recomendada
+## Ordem de Implementacao Recomendada (rascunho)
 
 ```
 #1 → #2 → [#3, #4, #5] → #6 → #7 → #8 → #9 → #10 → #11 → [#12, #13] → #14
@@ -674,7 +684,7 @@ Atualizar toda a documentação do projeto para refletir a nova arquitetura v2.0
 **Notas**: 
 - Issues entre [] podem ser implementadas em paralelo
 - Issues marcadas como 'critical' requerem code review obrigatório por 2 pessoas
-- Issues #6, #7, #12 são safety-critical (controlam paraquedas)
+- Issues #6, #7, #12 sao safety-critical (controlam paraquedas)
 
-**Tempo Total Estimado**: ~22 horas (atualizado após simplificação da Issue #6)
-**Issues Críticas**: 4 (#4, #6, #7, #12)
+**Tempo Total Estimado**: ~22 horas (atualizado apos simplificacao da Issue #6)
+**Issues Criticas**: 4 (#4, #6, #7, #12)

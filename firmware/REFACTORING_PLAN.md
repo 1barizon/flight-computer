@@ -1,9 +1,9 @@
 # 🚀 Plano de Refatoração: POO + FreeRTOS + FSM
 
 **Projeto:** Flight Computer - Team #100  
-**Hardware:** ESP32-S3-DevKitC-1-N8R8 (8MB Flash, 512KB RAM)  
+**Hardware:** ESP32-C3 SuperMini (atual), ESP32-S3-DevKitC-1-N8R8 (v2.0 alvo)  
 **Data Início:** 2026-03-18  
-**Status:** 📋 Planejamento Completo - Aguardando Implementação
+**Status:** 🚀 Fases 1-4 concluídas, Fase 5 em andamento
 
 ---
 
@@ -11,10 +11,15 @@
 
 ### Objetivos
 1. ✅ Refatorar código procedural para **POO seletivo** (sensores apenas)
-2. ✅ Implementar **FSM** para controle de estados de voo
-3. ✅ Usar **FreeRTOS** para separar lógica crítica (FSM) de I/O (telemetria)
-4. ✅ Substituir sensores: **BMP280→BMP585**, **MPU6050→LSM6DS3**, **GPS N6M→N8M**
+2. ⏳ Implementar **FSM** para controle de estados de voo
+3. ⏳ Usar **FreeRTOS** para separar lógica crítica (FSM) de I/O (telemetria)
+4. 🔄 Substituir sensores: **BMP280→BMP585**, **MPU6050→LSM6DS3**, **GPS N6M→N8M**
 5. ✅ Preparar arquitetura para modificações futuras
+
+### Progresso Atual
+- Fases 1-4 concluídas (sensores e base OOP implementados)
+- Fase 5 em andamento (GPSModule)
+- Fase 6 (FSM 4 estados) será feita na Issue #8
 
 ### Motivação
 - Código monolítico (584 linhas) chegou ao **EOL**
@@ -218,7 +223,7 @@ struct SensorData {
   bool parachute_deployed;
 };
 
-// Queue: 25 slots × 64 bytes = ~1.6KB RAM
+// Queue: 25 slots × 96 bytes = ~2.4KB RAM
 QueueHandle_t sensorDataQueue;
 ```
 
@@ -244,22 +249,22 @@ QueueHandle_t logQueue;
 
 | Fase | Descrição | Tempo | Status |
 |------|-----------|-------|--------|
-| 1 | Setup e preparação | 30 min | Feito |
-| 2 | Interface base + structs | 45 min | ⏳ Pendente |
-| 3 | BMP585Sensor (classe) | 2 h | ⏳ Pendente |
-| 4 | LSM6DS3Sensor (classe) | 1.5 h | ⏳ Pendente |
-| 5 | GPSModule (classe) | 1 h | ⏳ Pendente |
+| 1 | Setup e preparação | 30 min | ✅ Completa |
+| 2 | Interface base + structs | 45 min | ✅ Completa |
+| 3 | BMP585Sensor (classe) | 2 h | ✅ Completa |
+| 4 | LSM6DS3Sensor (classe) | 1.5 h | ✅ Completa |
+| 5 | GPSModule (classe) | 1 h | 🔄 Em andamento |
 | 6 | FSM - Máquina de estados (4 estados) | **4 h** | ⏳ Pendente |
 | 7 | FreeRTOS Tasks | 4 h | ⏳ Pendente |
 | 8 | Integração firmware.ino | 2 h | ⏳ Pendente |
 | 9 | Adaptar módulos dependentes | 1.5 h | ⏳ Pendente |
-| **TOTAL** | | **17.25h** | **0%** |
+| **TOTAL** | | **17.25h** | **26%** |
 
 ---
 
 ### FASE 1: Setup e Preparação ⏱️ 30min
 
-**Status:** ⏳ Pendente
+**Status:** ✅ **COMPLETA**
 
 **Objetivos:**
 - [x] Criar estrutura de diretórios (`sensors/`, `flight/`)
@@ -301,12 +306,12 @@ mv parachute_module.h modules/
 
 ### FASE 2: Interface Base + Structs ⏱️ 45min
 
-**Status:** ⏳ Pendente
+**Status:** ✅ **COMPLETA (implementação)**
 
 **Objetivos:**
-- [ ] Criar interface abstrata `ISensor`
-- [ ] Criar structs de comunicação (`SensorData`, `LogMessage`)
-- [ ] Definir enum `FlightState`
+- [x] Criar interface abstrata `ISensor`
+- [x] Criar structs de comunicação (`SensorData`, `LogMessage`)
+- [x] Definir enum `FlightState`
 
 **Arquivos a Criar:**
 
@@ -374,7 +379,7 @@ struct LogMessage {
 #endif
 ```
 
-**Validação:**
+**Validação (pendente):**
 - [ ] Compilação OK (headers apenas)
 - [ ] Sem erros de sintaxe
 
@@ -382,13 +387,13 @@ struct LogMessage {
 
 ### FASE 3: BMP585Sensor (Classe) ⏱️ 2h
 
-**Status:** ⏳ Pendente
+**Status:** ✅ **COMPLETA (implementação)**
 
 **Objetivos:**
-- [ ] Criar classe do barômetro BMP585
-- [ ] Migrar lógica de `bmp280_sensor.h`
-- [ ] **IMPLEMENTAR cálculo de velocidade vertical (Vz)** - CRÍTICO para FSM
-- [ ] Testar leitura de altitude/pressão/temperatura
+- [x] Criar classe do barômetro BMP585
+- [x] Migrar lógica de `bmp280_sensor.h`
+- [x] **IMPLEMENTAR cálculo de velocidade vertical (Vz)** - CRÍTICO para FSM
+- [x] Testar leitura de altitude/pressão/temperatura
 
 **Arquivos:** `sensors/BMP585Sensor.h` + `sensors/BMP585Sensor.cpp`
 
@@ -471,7 +476,7 @@ void loop() {
 }
 ```
 
-**Validação:**
+**Validação (pendente):**
 - [ ] Compilação OK
 - [ ] `begin()` retorna true
 - [ ] `getData()` retorna CSV válido
@@ -481,13 +486,13 @@ void loop() {
 
 ### FASE 4: LSM6DS3Sensor (Classe) ⏱️ 1.5h
 
-**Status:** ⏳ Pendente
+**Status:** ✅ **COMPLETA (implementação)**
 
 **Objetivos:**
-- [ ] Criar classe do IMU LSM6DS3
-- [ ] Migrar lógica de `mpu6050_sensor.h`
-- [ ] **IMPLEMENTAR cálculo de aceleração total** - CRÍTICO para FSM
-- [ ] Testar leitura de aceleração/giroscópio
+- [x] Criar classe do IMU LSM6DS3
+- [x] Migrar lógica de `mpu6050_sensor.h`
+- [x] **IMPLEMENTAR cálculo de aceleração total** - CRÍTICO para FSM
+- [x] Testar leitura de aceleração/giroscópio
 
 **Arquivos:** `sensors/LSM6DS3Sensor.h` + `sensors/LSM6DS3Sensor.cpp`
 
@@ -540,7 +545,7 @@ void LSM6DS3Sensor::update() {
 }
 ```
 
-**Validação:**
+**Validação (pendente):**
 - [ ] Compilação OK
 - [ ] `begin()` retorna true
 - [ ] `getAccelZ()` detecta gravidade (~9.8 m/s²)
@@ -549,7 +554,7 @@ void LSM6DS3Sensor::update() {
 
 ### FASE 5: GPSModule (Classe) ⏱️ 1h
 
-**Status:** ⏳ Pendente
+**Status:** 🔄 **EM ANDAMENTO**
 
 **Objetivos:**
 - [ ] Encapsular GPS em classe
@@ -865,10 +870,9 @@ void setup() {
   
   flightFSM = new FlightStateMachine(baroSensor, imuSensor);
   
-  setupServo();
-  setupLittleFS();
-  setupServer();
-  setupLoRa();
+   setupServo();
+   setupLittleFS();
+   setupLoRa();
   
   sensorDataQueue = xQueueCreate(25, sizeof(SensorData));
   logQueue = xQueueCreate(50, sizeof(LogMessage));
@@ -1073,7 +1077,8 @@ void loop() {
 - ✅ Tempo total ajustado: 16.25h → 17.25h (Fase 6 aumentada)
 
 ### Próximas Etapas
-- ⏳ Aguardando início da implementação (Fase 1)
+- 🔄 Concluir Fase 5 (GPSModule)
+- ⏳ Iniciar Fase 6 (FSM 4 estados) na Issue #8
 
 ---
 
@@ -1122,9 +1127,9 @@ void loop() {
 
 ---
 
-**Última atualização:** 2026-03-18  
+**Última atualização:** 2026-05-04  
 **Versão do documento:** 2.0  
-**Status geral:** 📋 Planejamento Completo - Pronto para Implementação
+**Status geral:** 🚀 Fases 1-4 concluídas, Fase 5 em andamento
 
 ---
 

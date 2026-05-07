@@ -7,7 +7,7 @@
  * - SensorData: Sensor data (BMP585, LSM6DS3, GPS)
  * - LogMessage: Log messages for logger task
  *
- * @author Team #100 - Serra Rocketry
+ * @author #11 - Serra Rocketry
  * @date 2026-04-06
  * @version 1.0.0
  *

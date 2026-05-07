@@ -1,6 +1,6 @@
 /**
  * @file firmware.ino
- * @brief Main firmware entry point for Team #100 Flight Computer (Avionics System)
+ * @brief Main firmware entry point for #11 Flight Computer (Avionics System)
  * 
  * This is the main program file for a rocket/drone flight computer that handles
  * sensor data collection, parachute deployment, telemetry transmission, and
@@ -27,7 +27,7 @@
  * @note All configuration parameters are in config.h
  * @note Data logging interval is 200ms (5Hz) as defined by INTERVAL
  * 
- * @author Team #100 Avionics
+ * @author #11 Avionics
  * @date 2024
  */
 

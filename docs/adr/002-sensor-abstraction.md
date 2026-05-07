@@ -2,7 +2,7 @@
 
 **Status**: Accepted  
 **Date**: 2026-04-06  
-**Deciders**: Team #100 - Serra Rocketry  
+**Deciders**: #11 - Serra Rocketry  
 **Proposers**: Embedded Architecture Team
 
 ## Context
@@ -260,18 +260,40 @@ struct SensorOps {
 - [x] Document with Doxygen
 - [x] Pass code review (Safety-Critical)
 
-### Phase 3 (In Progress)
+### Phase 3 (Completed - BMP585Sensor - 2026-04-06)
 
-- [ ] Implement `firmware/sensors/BMP585Sensor.h` (inherits ISensor)
-- [ ] Implement `firmware/sensors/LSM6DS3Sensor.h` (inherits ISensor)
-- [ ] Implement `firmware/sensors/GPSModule.h` (inherits ISensor)
-- [ ] Unit tests with mock sensors
+- [x] Implement `firmware/sensors/BMP585Sensor.h` (inherits ISensor)
+- [x] Implement vertical velocity calculation via numerical differentiation
+- [x] Add NaN/Inf validation and range clipping (±200 m/s)
 
-### Phase 4 (Planned)
+### Phase 4 (Completed - LSM6DS3Sensor - 2026-04-06)
 
-- [ ] Integrate into FlightControlTask
-- [ ] Integrate into TelemetryTask
-- [ ] System integration tests on hardware
+- [x] Implement `firmware/sensors/LSM6DS3Sensor.h` (inherits ISensor)
+- [x] Implement total acceleration magnitude (sqrt(ax² + ay² + az²))
+- [x] Add safety validations: NaN/Inf rejection, range checking (200 m/s², 2000 °/s)
+
+### Phase 5 (Completed - GPSModule - 2026-05-06)
+
+- [x] Implement `firmware/sensors/GPSModule.h` (inherits ISensor)
+- [x] Non-blocking NMEA parsing via TinyGPS++
+- [x] HardwareSerial dependency injection for flexibility
+
+### Phase 6 (Planned - Flight State Machine)
+
+- [ ] Implement 4-state FSM (IDLE → ASCENT → DESCENT → LANDED)
+- [ ] State transition logic with safety guards
+- [ ] Parachute deployment integration
+
+### Phase 7-8 (Planned - FreeRTOS Integration)
+
+- [ ] Implement FlightControlTask (Core 1, 50Hz)
+- [ ] Implement TelemetryTask (Core 0, 5Hz)
+- [ ] Implement LoggerTask (Core 0, low priority)
+- [ ] Integrate with legacy modules
+
+### Phase 9 (Planned - Cleanup)
+
+- [ ] Remove legacy sensor modules (bmp280_sensor.h, mpu6050_sensor.h, gps_module.h)
 
 ## Validation
 

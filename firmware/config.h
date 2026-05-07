@@ -6,7 +6,7 @@
  * used throughout the system. Centralizing configurations here makes
  * maintenance and parameter modifications easier.
  * 
- * @author Team #100
+ * @author #11
  * @date 2026
  */
 

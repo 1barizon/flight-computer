@@ -24,7 +24,7 @@
  * @note This module depends on all sensor modules being properly initialized
  * @warning Filesystem must be ready before calling logData() to prevent data loss
  * 
- * @author Team #100 Avionics
+ * @author #11 Avionics
  * @date 2024
  */
 

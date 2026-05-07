@@ -1,6 +1,6 @@
 # AGENTS.md - Flight Computer Development Guide
 
-This guide is for AI coding agents working on the Flight Computer project (Team #100 - Serra Rocketry). It contains build commands, code style guidelines, and development workflows.
+This guide is for AI coding agents working on the Flight Computer project (#11 - Serra Rocketry). It contains build commands, code style guidelines, and development workflows.
 
 ## Project Context
 

@@ -17,7 +17,7 @@
  * Communication: SPI bus
  * Frequency: 868 MHz (Europe) or 915 MHz (Americas) - configured in config.h
  * 
- * @author Team #100
+ * @author #11
  * @date 2026
  */
 

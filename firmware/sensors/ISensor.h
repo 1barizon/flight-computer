@@ -5,7 +5,7 @@
  * Defines the standard interface that all sensors must implement,
  * enabling abstraction and polymorphism for BMP585, LSM6DS3, GPS, etc.
  *
- * @author Team #100 - Serra Rocketry
+ * @author #11 - Serra Rocketry
  * @date 2026-04-06
  * @version 1.0.0
  *

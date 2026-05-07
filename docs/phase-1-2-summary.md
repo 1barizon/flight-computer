@@ -1,7 +1,7 @@
 # Flight Computer v2.0 - Phase 1-2 Completion Summary
 
 **Date**: 2026-04-06  
-**Project**: Flight Computer (Team #100, ESP32-S3)  
+**Project**: Flight Computer (#11, ESP32-S3)  
 **Status**: ✅ **PHASE 1-2 COMPLETE**  
 **Next Phase**: Phase 3 - Sensor Implementations
 

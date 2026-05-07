@@ -1,6 +1,6 @@
 # 🚀 Plano de Refatoração: POO + FreeRTOS + FSM
 
-**Projeto:** Flight Computer - Team #100  
+**Projeto:** Flight Computer - #11  
 **Hardware:** ESP32-C3 SuperMini (atual), ESP32-S3-DevKitC-1-N8R8 (v2.0 alvo)  
 **Data Início:** 2026-03-18  
 **Status:** 🚀 Fases 1-5 concluídas, Fase 6 em andamento
@@ -1120,7 +1120,7 @@ void loop() {
 
 ## 📞 Contato
 
-**Team #100 Avionics**  
+**#11 Avionics**  
 **Projeto:** Flight Computer  
 **Repositório:** `/home/vinicius/Documentos/Projetos/flight-computer/`
 

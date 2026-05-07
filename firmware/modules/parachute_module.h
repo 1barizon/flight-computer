@@ -19,7 +19,7 @@
  * - One-time deployment (prevents multiple activations)
  * - Servo verification (checks position after actuation)
  * 
- * @author Team #100
+ * @author #11
  * @date 2026
  */
 

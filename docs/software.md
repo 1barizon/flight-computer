@@ -5,8 +5,8 @@
 The Flight Computer v2.0 firmware runs on an ESP32-S3 platform with a FreeRTOS multi-task architecture, managing sensors, communication and parachute control during flight. 
 
 **Version**: 2.0.0-dev  
-**Architecture**: FreeRTOS-based (Phases 1-2 completed)  
-**Hardware**: ESP32-S3-DevKitC-1-N8R8  
+**Architecture**: FreeRTOS-based (Phases 1-5 completed)  
+**Hardware**: ESP32-C3 SuperMini (current), ESP32-S3 (v2.0 target)  
 **Team**: #100 - Serra Rocketry
 
 ## Architecture Overview
@@ -17,15 +17,16 @@ The v2.0 refactoring introduces:
 - **Object-oriented sensor abstraction** (ISensor interface)
 - **Multi-task real-time architecture** (FreeRTOS)
 - **Type-safe data sharing** (SensorData structures)
-- **7-state flight state machine** (validated with real flight data)
+- **4-state flight state machine** (IDLE → ASCENT → DESCENT → LANDED)
+  - Validated with real flight data (1,873 points in 13_30_11-Dados.csv)
 
 ```mermaid
 graph TB
     subgraph "Core 1 - Flight Critical"
         FC[FlightControlTask<br/>50Hz, Priority 20]
-        FSM[Flight State Machine<br/>IDLE→LIFTOFF→...→LANDED]
+        FSM[Flight State Machine<br/>IDLE→ASCENT→DESCENT→LANDED]
         SENS[Sensor Updates<br/>BMP585, LSM6DS3]
-        
+
         FC --> FSM
         FC --> SENS
     end
@@ -56,6 +57,32 @@ graph TB
 
 ### Project Structure (v2.0)
 
+```
+firmware/
+├── firmware.ino                    # Main entry point (still v1.0, pending Phase 8)
+├── config.h                        # Configuration constants
+│
+├── sensors/                        # ✅ Sensor abstraction layer (COMPLETE)
+│   ├── ISensor.h                  # Abstract interface for all sensors
+│   ├── BMP585Sensor.h/cpp         # Barometric pressure sensor (Phase 3) ✅
+│   ├── LSM6DS3Sensor.h/cpp        # IMU: Accel + Gyro (Phase 4) ✅
+│   └── GPSModule.h/cpp            # GNSS positioning (Phase 5) ✅
+│
+├── flight/                         # Flight control logic (Phase 6+)
+│   ├── SensorData.h               # Shared data structures ✅
+│   └── [pending]                  # FlightStateMachine, Tasks (Phase 6-7)
+│
+├── modules/                        # Legacy v1.0 modules (still in use)
+│   ├── bmp280_sensor.h            # Still used (to be removed Phase 9)
+│   ├── mpu6050_sensor.h           # Still used (to be removed Phase 9)
+│   ├── gps_module.h               # Still used (to be removed Phase 9)
+│   ├── lora_module.h
+│   ├── filesystem_module.h
+│   ├── parachute_module.h
+│   └── buzzer_module.h
+│
+├── REFACTORING_PLAN.md            # v2.0 Architecture specification (v2.1)
+└── MODULOS.md                     # Module documentation
 ```
 firmware/
 ├── firmware.ino                    # Main entry point (FreeRTOS setup)
@@ -93,11 +120,11 @@ firmware/
 
 | Interface | Sensor | Hardware | Status | Phase |
 |-----------|--------|----------|--------|-------|
-| `ISensor` | BMP585Sensor | Bosch BMP585 Barometer | ⏳ In Progress | 3 |
-| `ISensor` | LSM6DS3Sensor | ST Microelectronics LSM6DS3 IMU | ⏳ In Progress | 3 |
-| `ISensor` | GPSModule | u-blox NEO-6M / NEO-M8 | ⏳ In Progress | 3 |
-| - | LoRa Module | Semtech RFM95W | ⏳ Planned | 5 |
-| - | Servo Control | MG92B Servo | ⏳ Planned | 4 |
+| `ISensor` | BMP585Sensor | Bosch BMP585 Barometer | ✅ Complete | 3 |
+| `ISensor` | LSM6DS3Sensor | ST Microelectronics LSM6DS3 IMU | ✅ Complete | 4 |
+| `ISensor` | GPSModule | u-blox NEO-8M GPS | ✅ Complete | 5 |
+| - | LoRa Module | Semtech RFM95W | ⏳ Planned | - |
+| - | Servo Control | MG92B Servo | ⏳ Legacy (v1.0) | - |
 
 ### Phases Completed
 
@@ -109,24 +136,40 @@ firmware/
 #### ✅ Phase 2: Base Interfaces (2026-04-06)
 - Implemented `ISensor.h` - abstract interface for all sensors
 - Implemented `SensorData.h` - shared data structures for inter-task communication
-- Added Doxygen documentation for all interfaces
+- Added Doxygen documentation for all interfaces (English only)
 - Passed safety-critical code review
-- Added critical safety initializations (commit 4b0c239)
 
-#### ⏳ Phase 3: Sensor Implementations (In Progress)
-- [ ] BMP585Sensor.h - Barometric pressure + altitude calculation
-- [ ] LSM6DS3Sensor.h - Accelerometer + Gyroscope
-- [ ] GPSModule.h - GNSS positioning
+#### ✅ Phase 3: BMP585Sensor (2026-04-06)
+- BMP585Sensor.h/cpp - Barometric pressure + altitude calculation
+- Vertical velocity calculation via numerical differentiation
+- NaN/Inf validation, range clipping (±200 m/s)
 
-#### ⏳ Phase 4: Flight Control Integration (Planned)
-- [ ] FlightStateMachine.h - 7-state FSM
-- [ ] FlightControlTask - Core 1 flight logic
-- [ ] System integration tests
+#### ✅ Phase 4: LSM6DS3Sensor (2026-04-06)
+- LSM6DS3Sensor.h/cpp - Accelerometer + Gyroscope
+- Total acceleration magnitude calculation
+- Safety validations: NaN/Inf rejection, range checking (200 m/s², 2000 °/s)
 
-#### ⏳ Phase 5: Communication & Logging (Planned)
-- [ ] LoRa telemetry module
-- [ ] WiFi web server
-- [ ] Data logging to LittleFS
+#### ✅ Phase 5: GPSModule (2026-05-06)
+- GPSModule.h/cpp - GNSS positioning
+- Non-blocking NMEA parsing via TinyGPS++
+- HardwareSerial dependency injection for flexibility
+
+#### ⏳ Phase 6: Flight State Machine (Planned)
+- [ ] FlightStateMachine.h - 4-state FSM (IDLE → ASCENT → DESCENT → LANDED)
+- [ ] State transition logic with safety guards
+- [ ] Parachute deployment integration
+
+#### ⏳ Phase 7: FreeRTOS Tasks (Planned)
+- [ ] FlightControlTask - Core 1, 50Hz, Priority 20
+- [ ] TelemetryTask - Core 0, 5Hz, Priority 5
+- [ ] LoggerTask - Core 0, low priority
+
+#### ⏳ Phase 8: Integration (Planned)
+- [ ] Refactor firmware.ino to use new classes
+- [ ] Integrate with legacy modules
+
+#### ⏳ Phase 9: Cleanup (Planned)
+- [ ] Remove legacy sensor modules (bmp280_sensor.h, mpu6050_sensor.h, gps_module.h)
 
 ## Main File (Legacy v1.0 Architecture)
 

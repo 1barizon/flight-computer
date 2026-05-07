@@ -7,7 +7,7 @@
  * The buzzer provides critical feedback during operation, especially when
  * visual monitoring is not possible.
  * 
- * @author Team #100 Avionics
+ * @author #11 Avionics
  * @date 2024
  */
 

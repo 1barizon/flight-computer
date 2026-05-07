@@ -19,7 +19,7 @@
 // Globals
 // ============================================================
 
-GPSModule gps;
+GPSModule gps(&Serial1);
 
 unsigned long last_print_ms = 0;
 const unsigned long PRINT_INTERVAL_MS = 1000;  // imprimir a cada 1s

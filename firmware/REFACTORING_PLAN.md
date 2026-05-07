@@ -3,7 +3,7 @@
 **Projeto:** Flight Computer - Team #100  
 **Hardware:** ESP32-C3 SuperMini (atual), ESP32-S3-DevKitC-1-N8R8 (v2.0 alvo)  
 **Data Início:** 2026-03-18  
-**Status:** 🚀 Fases 1-4 concluídas, Fase 5 em andamento
+**Status:** 🚀 Fases 1-5 concluídas, Fase 6 em andamento
 
 ---
 
@@ -253,7 +253,7 @@ QueueHandle_t logQueue;
 | 2 | Interface base + structs | 45 min | ✅ Completa |
 | 3 | BMP585Sensor (classe) | 2 h | ✅ Completa |
 | 4 | LSM6DS3Sensor (classe) | 1.5 h | ✅ Completa |
-| 5 | GPSModule (classe) | 1 h | 🔄 Em andamento |
+| 5 | GPSModule (classe) | 1 h | ✅ Completa |
 | 6 | FSM - Máquina de estados (4 estados) | **4 h** | ⏳ Pendente |
 | 7 | FreeRTOS Tasks | 4 h | ⏳ Pendente |
 | 8 | Integração firmware.ino | 2 h | ⏳ Pendente |
@@ -554,12 +554,12 @@ void LSM6DS3Sensor::update() {
 
 ### FASE 5: GPSModule (Classe) ⏱️ 1h
 
-**Status:** 🔄 **EM ANDAMENTO**
+**Status:** ✅ **COMPLETA**
 
 **Objetivos:**
-- [ ] Encapsular GPS em classe
-- [ ] Manter `TinyGPSPlus` (sem mudança de biblioteca)
-- [ ] Testar recepção de coordenadas
+- [x] Encapsular GPS em classe
+- [x] Manter `TinyGPSPlus` (sem mudança de biblioteca)
+- [x] Testar recepção de coordenadas
 
 **Arquivos:** `sensors/GPSModule.h` + `sensors/GPSModule.cpp`
 
@@ -568,21 +568,21 @@ void LSM6DS3Sensor::update() {
 class GPSModule : public ISensor {
 public:
   GPSModule(HardwareSerial* serial);
-  
+
   bool begin() override;
   void update() override;
   String getData() override;
   bool isReady() override;
-  
+
   String getTimeString() const;
   String getDateString() const;
 };
 ```
 
 **Validação:**
-- [ ] Compilação OK
-- [ ] GPS recebe NMEA sentences
-- [ ] `getTimeString()` retorna tempo válido após fix
+- [x] Compilação OK
+- [x] GPS recebe NMEA sentences
+- [x] `getTimeString()` retorna tempo válido após fix
 
 ---
 
@@ -1077,7 +1077,6 @@ void loop() {
 - ✅ Tempo total ajustado: 16.25h → 17.25h (Fase 6 aumentada)
 
 ### Próximas Etapas
-- 🔄 Concluir Fase 5 (GPSModule)
 - ⏳ Iniciar Fase 6 (FSM 4 estados) na Issue #8
 
 ---
@@ -1127,9 +1126,9 @@ void loop() {
 
 ---
 
-**Última atualização:** 2026-05-04  
-**Versão do documento:** 2.0  
-**Status geral:** 🚀 Fases 1-4 concluídas, Fase 5 em andamento
+**Última atualização:** 2026-05-06  
+**Versão do documento:** 2.1  
+**Status geral:** 🚀 Fases 1-5 concluídas, Fase 6 em andamento
 
 ---
 

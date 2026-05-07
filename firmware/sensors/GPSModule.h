@@ -15,7 +15,7 @@
  */
 class GPSModule : public ISensor {
 public:
-  GPSModule();
+  GPSModule(HardwareSerial* serial);
 
   // Interface ISensor
   bool begin() override;
@@ -36,6 +36,7 @@ public:
 
 private:
   TinyGPSPlus _gps;
+  HardwareSerial* _serial;
   bool _ready;
 };
 

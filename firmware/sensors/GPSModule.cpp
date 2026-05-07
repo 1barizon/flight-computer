@@ -1,18 +1,18 @@
 #include "GPSModule.h"
 #include "../config.h"
 
-GPSModule::GPSModule() : _ready(false) {}
+GPSModule::GPSModule(HardwareSerial* serial) : _serial(serial), _ready(false) {}
 
 bool GPSModule::begin() {
-  Serial1.begin(9600, SERIAL_8N1, RX_GPS, TX_GPS);
+  _serial->begin(9600, SERIAL_8N1, RX_GPS, TX_GPS);
   _ready = true;
   return true;
 }
 
 void GPSModule::update() {
   if (!_ready) return;
-  while (Serial1.available() > 0) {
-    _gps.encode(Serial1.read());
+  while (_serial->available() > 0) {
+    _gps.encode(_serial->read());
   }
 }
 

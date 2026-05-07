@@ -1,14 +1,41 @@
+/**
+ * @file GPSModule.cpp
+ * @brief Implementation of GPS receiver wrapper
+ * 
+ * @see GPSModule.h for class definition
+ * @see firmware/REFACTORING_PLAN.md Fase 5
+ */
+
 #include "GPSModule.h"
 #include "../config.h"
 
+/**
+ * @brief Constructor with HardwareSerial dependency injection
+ * @param serial Pointer to HardwareSerial instance (e.g., &Serial1)
+ */
 GPSModule::GPSModule(HardwareSerial* serial) : _serial(serial), _ready(false) {}
 
+/**
+ * @brief Initializes GPS serial communication
+ * 
+ * @return true always (non-blocking, Serial.begin never fails)
+ * @note Uses 9600 baud (default for NEO-8M), 8N1 format
+ */
 bool GPSModule::begin() {
   _serial->begin(9600, SERIAL_8N1, RX_GPS, TX_GPS);
   _ready = true;
   return true;
 }
 
+/**
+ * @brief Feeds GPS parser with available NMEA data
+ * 
+ * Non-blocking: processes all available characters without waiting.
+ * Called by TelemetryTask at 5Hz (slower than flight-critical sensors).
+ * 
+ * @return void
+ * @note CRITICAL: Must be called regularly to prevent buffer overflow
+ */
 void GPSModule::update() {
   if (!_ready) return;
   while (_serial->available() > 0) {

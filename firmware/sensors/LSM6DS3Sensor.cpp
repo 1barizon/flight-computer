@@ -1,7 +1,18 @@
 
+/**
+ * @file LSM6DS3Sensor.cpp
+ * @brief Implementation of LSM6DS3 IMU sensor driver
+ * 
+ * @see LSM6DS3Sensor.h for class definition
+ * @see firmware/REFACTORING_PLAN.md Fase 4
+ */
+
 #include "LSM6DS3Sensor.h"
 #include <cmath>
 
+/**
+ * @brief Default constructor - initializes all members to safe values
+ */
 LSM6DS3Sensor::LSM6DS3Sensor()
 		: ready(false),
 			accelX(0.0F),
@@ -12,6 +23,14 @@ LSM6DS3Sensor::LSM6DS3Sensor()
 			gyroZ(0.0F),
 			total_accel(0.0F) {}
 
+/**
+ * @brief Initializes LSM6DS3 IMU sensor
+ * 
+ * Performs I2C communication test and initial reading to validate sensor.
+ * 
+ * @return true if initialization successful, false on error
+ * @note Blocking: performs initial sensor read
+ */
 bool LSM6DS3Sensor::begin() {
 	if (!lsm.begin_I2C()) {
 		Serial.println("LSM6DS3 initialization failed.");
@@ -37,6 +56,18 @@ bool LSM6DS3Sensor::begin() {
 	return true;
 }
 
+/**
+ * @brief Updates IMU readings with safety validations
+ * 
+ * Non-blocking sensor read with comprehensive validation:
+ * 1. NaN/Inf rejection for safety-critical FSM
+ * 2. Range validation (200 m/s² accel, 2000 °/s gyro)
+ * Corrupted samples are silently dropped to prevent FSM errors.
+ * 
+ * @return void
+ * @note Called by FlightControlTask at 50Hz
+ * @note CRITICAL: Validates data before updating internal state
+ */
 void LSM6DS3Sensor::update() {
 	if (!isReady()) {
 		return;
@@ -60,9 +91,9 @@ void LSM6DS3Sensor::update() {
 		return;
 	}
 
-	// Validation 2: Check realistic ranges (Issue #6 requirement)
+	// Validation 2: Check realistic ranges
 	// LSM6DS3 typical range: ±16g (±156.96 m/s²) for accel, ±2000 °/s for gyro
-	// We allow slightly higher peaks (200 m/s², 2000 °/s) for extreme events
+	// Allows slightly higher peaks (200 m/s², 2000 °/s) for extreme events
 	const float MAX_ACCEL = 200.0f;   // m/s² (allows 20g peaks)
 	const float MAX_GYRO = 2000.0f;   // °/s (matches sensor range)
 	

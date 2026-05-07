@@ -1,3 +1,11 @@
+/**
+ * @file BMP585Sensor.cpp
+ * @brief Implementation of BMP585 barometric sensor driver
+ * 
+ * @see BMP585Sensor.h for class definition
+ * @see firmware/REFACTORING_PLAN.md Fase 3
+ */
+
 #include "BMP585Sensor.h"
 
 BMP585Sensor::BMP585Sensor()
@@ -5,6 +13,15 @@ BMP585Sensor::BMP585Sensor()
       pressure(0.0F), max_altitude(0.0F), prev_altitude(0.0F), prev_time(0UL),
       vertical_velocity(0.0F) {}
 
+/**
+ * @brief Initializes BMP585 sensor and calibrates base pressure
+ * 
+ * Performs I2C communication test, first reading validation, and
+ * base pressure calibration (single sample at startup).
+ * 
+ * @return true if initialization successful, false on error
+ * @note Blocking: performs one sensor reading during calibration
+ */
 bool BMP585Sensor::begin() {
   if (!_bmp.begin_I2C()) {
     Serial.println("BMP585 initialization failed.");
@@ -18,7 +35,6 @@ bool BMP585Sensor::begin() {
     return false;
   }
 
-  // inicializando dados da base
   pressure = _bmp.pressure / 100.0F;
   temperature = _bmp.temperature;
   base_pressure = pressure;
@@ -33,6 +49,16 @@ bool BMP585Sensor::begin() {
   return true;
 }
 
+/**
+ * @brief Updates sensor readings and calculates vertical velocity
+ * 
+ * Non-blocking sensor read with numerical differentiation for Vz calculation.
+ * Vertical velocity is clipped to ±200 m/s to reject noise spikes.
+ * 
+ * @return void
+ * @note Called by FlightControlTask at 50Hz
+ * @note Calls checkHighest() to update max altitude
+ */
 void BMP585Sensor::update() {
   if (!isReady()) {
     return;
@@ -53,7 +79,6 @@ void BMP585Sensor::update() {
   if (dt > 0.001F) {
     float vz = (current_altitude - prev_altitude) / dt;
 
-    // Clip to a physically plausible range to reduce numerical spikes.
     if (vz > 200.0F) {
       vz = 200.0F;
     } else if (vz < -200.0F) {

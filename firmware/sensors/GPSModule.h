@@ -6,12 +6,12 @@
 #include <Arduino.h>
 
 /**
- * @brief GPS receiver wrapper implementando a interface ISensor.
+ * @brief GPS receiver wrapper implementing ISensor interface.
  *
- * Alimenta o parser TinyGPS++ de forma não-bloqueante em update().
- * Chamada esperada: TelemetryTask a 5 Hz.
+ * Feeds TinyGPS++ parser non-blockingly in update().
+ * Expected call: TelemetryTask at 5 Hz.
  *
- * Pinos configurados em config.h (RX_GPS / TX_GPS), baud 9600.
+ * Pins configured in config.h (RX_GPS / TX_GPS), baud 9600.
  */
 class GPSModule : public ISensor {
 public:

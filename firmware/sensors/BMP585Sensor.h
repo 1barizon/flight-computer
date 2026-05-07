@@ -1,3 +1,11 @@
+/**
+ * @file BMP585Sensor.h
+ * @brief BMP585 barometric pressure sensor driver
+ *
+ * @see BMP585Sensor.cpp for implementation
+ * @see firmware/REFACTORING_PLAN.md Phase 3
+ */
+
 #ifndef BMP585_SENSOR_H
 #define BMP585_SENSOR_H
 
@@ -5,20 +13,27 @@
 #include <Adafruit_BMP5XX.h>
 #include <Arduino.h>
 
+/**
+ * @brief BMP585 barometric sensor implementation
+ *
+ * Implements ISensor interface for BMP585 barometric sensor.
+ * Calculates altitude using barometric formula and computes
+ * vertical velocity via numerical differentiation.
+ */
 class BMP585Sensor : public ISensor {
 public:
   BMP585Sensor();
 
-  // Interface ISensor
+  // ISensor interface
   bool begin() override;
   void update() override;
   String getData() override;
   bool isReady() override;
 
-  // Específicos do barômetro
+  // Barometer-specific getters
   float getAltitude() const;
   float getMaxAltitude() const;
-  float getVerticalVelocity() const; // ⚠️ CRÍTICO: Calculado via diferenciação numérica
+  float getVerticalVelocity() const;  // CRITICAL: Computed via numerical differentiation
   void checkHighest();
 
 private:
@@ -31,7 +46,7 @@ private:
   float max_altitude;
   float prev_altitude;
   unsigned long prev_time;
-  float vertical_velocity; // Vz = (altitude_current - altitude_previous) / dt
+  float vertical_velocity;  // Vz = (altitude_current - altitude_previous) / dt
 };
 
 #endif // BMP585_SENSOR_H

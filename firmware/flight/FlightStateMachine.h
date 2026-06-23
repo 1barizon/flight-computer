@@ -103,21 +103,6 @@ public:
   //
   // Reference: test/FSM/FSM.ino and extras/FSM_tester/FSM_Tester.py
 
-  static constexpr float LIFTOFF_ACCEL_THRESHOLD  = 15.0f;  ///< m/s²  total accel
-  static constexpr float BURNOUT_AZ_THRESHOLD     = -8.0f;  ///< m/s²  vertical accel
-  static constexpr float BURNOUT_ACC_THRESHOLD    =  2.0f;  ///< m/s²  total accel
-  static constexpr float BURNOUT_MIN_HEIGHT       =  5.0f;  ///< m     minimum altitude
-  static constexpr float BURNOUT_MIN_VZ           =  0.5f;  ///< m/s   minimum climb speed
-  static constexpr float APOGEE_MAX_VZ            =  1.0f;  ///< m/s   |vz| below this
-  static constexpr float APOGEE_AZ_THRESHOLD      = -0.1f;  ///< m/s²  az below this
-  static constexpr float FREEFALL_ACC_THRESHOLD   = 11.5f;  ///< m/s²  total accel
-  static constexpr float FREEFALL_MIN_HEIGHT      =  5.0f;  ///< m     minimum altitude
-  static constexpr float FREEFALL_MAX_VZ          = -5.0f;  ///< m/s   vz must be below this
-  static constexpr float PARACHUTE_ALTITUDE       = 100.0f; ///< m     deployment altitude
-  static constexpr float LANDED_MAX_VZ            =  0.5f;  ///< m/s   |vz| below this
-  static constexpr float LANDED_MAX_HEIGHT        =  2.0f;  ///< m     altitude below this
-  static constexpr float FILTER_ALPHA             =  0.2f;  ///< IIR low-pass coefficient
-
 private:
   BMP585Sensor*  _baro;
   LSM6DS3Sensor* _imu;
@@ -132,10 +117,12 @@ private:
   bool _parachuteDeployed;
 
   // IIR filter state for accelerometer (matches test/FSM/FSM.ino, ALPHA=0.2)
-  float _filtAx;
-  float _filtAy;
-  float _filtAz;
-  bool  _firstReading;
+  float    _filtAx;
+  float    _filtAy;
+  float    _filtAz;
+  bool     _firstReading;
+
+  uint32_t _stateEnteredAt; // millis() when current state was entered — for timeout guard
 
   void transitionTo(FlightState next);
 

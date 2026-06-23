@@ -36,7 +36,8 @@ FlightStateMachine::FlightStateMachine(BMP585Sensor* baro, LSM6DS3Sensor* imu)
       _filtAx(0.0f),
       _filtAy(0.0f),
       _filtAz(0.0f),
-      _firstReading(true) {}
+      _firstReading(true),
+      _stateEnteredAt(0) {}
 
 bool FlightStateMachine::begin() {
   if (!_baro || !_imu) {
@@ -61,6 +62,7 @@ void FlightStateMachine::reset() {
   _parachuteDeployed = false;
   _filtAx = _filtAy = _filtAz = 0.0f;
   _firstReading = true;
+  _stateEnteredAt = millis();
   Serial.println("[FSM] Reset -> IDLE");
 }
 
@@ -120,6 +122,10 @@ void FlightStateMachine::update() {
       if (!_apogeeDetected && detectApogee(vz, _filtAz)) {
         _apogeeDetected = true;
         transitionTo(DESCENT);
+      } else if ((millis() - _stateEnteredAt) >= STATE_TIMEOUT_MS) {
+        Serial.printf("[FSM] TIMEOUT ASCENT (%.0fs) -> forcing DESCENT\n", STATE_TIMEOUT_MS / 1000.0f);
+        _apogeeDetected = true;
+        transitionTo(DESCENT);
       }
       break;
 
@@ -134,6 +140,9 @@ void FlightStateMachine::update() {
         Serial.printf("[FSM] PARACHUTE DEPLOYED h=%.1f vz=%.2f\n", height, vz);
       }
       if (detectLanded(vz, height)) {
+        transitionTo(LANDED);
+      } else if ((millis() - _stateEnteredAt) >= STATE_TIMEOUT_MS) {
+        Serial.printf("[FSM] TIMEOUT DESCENT (%.0fs) -> forcing LANDED\n", STATE_TIMEOUT_MS / 1000.0f);
         transitionTo(LANDED);
       }
       break;
@@ -177,6 +186,7 @@ bool FlightStateMachine::isParachuteDeployed() const     { return _parachuteDepl
 void FlightStateMachine::transitionTo(FlightState next) {
   Serial.printf("[FSM] %s -> %s\n", getFlightStateName(_state), getFlightStateName(next));
   _state = next;
+  _stateEnteredAt = millis();
 }
 
 // ── Detection functions ───────────────────────────────────────────────────────

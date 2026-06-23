@@ -75,7 +75,7 @@ void BMP585Sensor::update() {
   temperature = _bmp.temperature;
   altitude = current_altitude;
 
-  const float dt = (current_time - prev_time) / 1000.0F;
+  const float dt = (current_time - prev_time);
   if (dt > 0.001F) {
     float vz = (current_altitude - prev_altitude) / dt;
 

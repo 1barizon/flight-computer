@@ -259,7 +259,8 @@ QueueHandle_t logQueue;
 | 7 | FreeRTOS Tasks | 4 h | ⏳ Pendente |
 | 8 | Integração firmware.ino | 2 h | ⏳ Pendente |
 | 9 | Adaptar módulos dependentes | 1.5 h | ⏳ Pendente |
-| **TOTAL** | | **17.25h** | **44%** |
+| 10 | Comunicação com o Receiver | 2 h | ⏳ Pendente |
+| **TOTAL** | | **19.25h** | **44%** |
 
 ---
 
@@ -924,7 +925,69 @@ void loop() {
 
 ---
 
-## 🧪 Validação e Testes
+### FASE 10: Comunicação com o Receiver ⏱️ 2h
+
+**Status:** ⏳ Pendente
+
+**	Contexto:**
+O flight computer transmite telemetria via LoRa para o receiver (recovery-webui/components/receiver-lora/firmware/).
+O receiver é um ESP32 separado que recebe pacotes CSV, faz parse dos campos, adiciona hora/data do GPS local,
+e retransmite para o WebUI. Qualquer mudança no formato de telemetria do flight computer DEVE ser refletida no
+receiver para manter compatibilidade.
+
+**Formato atual do Receiver (19 campos):**
+```
+TEAM_ID,millis,count,altp,temp,umi,p,gp,gr,gy,ap,ar,ay,alt,lat,lon,sat,rssi
+```
+- `rssi` é fixo em -1 (placeholder, ainda não medido pelo satellite)
+
+**Pendências no receiver (v1.0 desatualizado):**
+- ❌ Recebe 18 campos + TEAM_ID = 19 campos, mas o parser espera apenas 18+TEAM_ID
+- ❌ `hora,data` (do GPS do flight computer) não é transmitido -- o receiver usa seu próprio GPS para timestamp
+- ❌ O receiver espera `ap,ar,ay` nos índices 10-12, mas o formato atual usa `umi,p` nos índices 5-6 e não tem aceleração separada
+- ❌ `rssi` nunca é preenchido (hardcoded -1)
+
+**Objetivos:**
+- [ ] Definir formato de telemetria final da v2.0 (campo a campo)
+- [ ] Escrever formato em `docs/telemetry-format.md` (referência única)
+- [ ] Garantir que `TelemetryTask` (Fase 7) monte o pacote no formato acordado
+- [ ] Atualizar parser do receiver se o formato mudar
+- [ ] Incluir `rssi` real na transmissão (se LoRa API suportar `LoRa.packetRssi()`)
+- [ ] Validar ponta-a-ponta: flight computer transmite -> receiver parse -> retransmite corretamente
+
+**Formato v2.0 proposto (rascunho -- requer alinhamento com receiver):**
+
+| Índice | Campo | Origem | Unidade |
+|--------|-------|--------|---------|
+| 0 | TEAM_ID | config.h | string |
+| 1 | millis | flight computer | ms |
+| 2 | count | flight computer | uint16 |
+| 3 | altp | BMP585Sensor | m (relativo) |
+| 4 | temp | BMP585Sensor | C |
+| 5 | umi | (futuro) | % |
+| 6 | p | BMP585Sensor | Pa |
+| 7 | gx | LSM6DS3Sensor | deg/s |
+| 8 | gy | LSM6DS3Sensor | deg/s |
+| 9 | gz | LSM6DS3Sensor | deg/s |
+| 10 | ax | LSM6DS3Sensor | m/s² |
+| 11 | ay | LSM6DS3Sensor | m/s² |
+| 12 | az | LSM6DS3Sensor | m/s² |
+| 13 | vz | BMP585Sensor | m/s |
+| 14 | maxAltitude | BMP585Sensor | m |
+| 15 | state | FlightStateMachine | enum (0-3) |
+| 16 | alt | GPSModule | m |
+| 17 | lat | GPSModule | deg |
+| 18 | lon | GPSModule | deg |
+| 19 | sat | GPSModule | count |
+| 20 | packetQuality | flight computer | uint8 |
+| 21 | rssi | LoRa | dBm |
+
+**Nota:** Este formato pode ser reduzido para manter 19-20 campos (compatibilidade com receiver atual) ou expandido para 21+ campos (v2.0 completo). A definiça depende do receiver.
+
+**Referências:**
+- `recovery-webui/components/receiver-lora/firmware/Receiver/src/main.cpp` -- Parser CSV do receiver
+- `docs/software.md` -- Arquitetura do software
+- `firmware/REFACTORING_PLAN.md` -- Plano de refatoração
 
 ### Checklist de Funcionalidades
 
@@ -957,6 +1020,12 @@ void loop() {
 - [ ] Deploy aciona no estado DESCENT
 - [ ] Servo move para posição correta
 - [ ] Buzzer toca sinal "Activated"
+
+**Receiver (integração):**
+- [ ] Formato de telemetria documentado em `docs/telemetry-format.md`
+- [ ] Parser do receiver compatível com formato v2.0
+- [ ] `rssi` real transmitido (não hardcoded -1)
+- [ ] Validação ponta-a-ponta (flight computer -> receiver -> WebUI)
 
 
 ### Testes de Estresse
@@ -1091,6 +1160,7 @@ void loop() {
 - ⏳ Iniciar Fase 7 (FreeRTOS Tasks)
 - ⏳ Fase 8 (Integração firmware.ino)
 - ⏳ Fase 9 (Adaptar módulos dependentes - remover código legacy)
+- ⏳ Fase 10 (Comunicação com o Receiver - alinhar formato de telemetria)
 
 ---
 
@@ -1140,7 +1210,7 @@ void loop() {
 ---
 
 **Última atualização:** 2026-06-24  
-**Versão do documento:** 2.2  
+**Versão do documento:** 2.3  
 **Status geral:** 🚀 Fases 1-6 concluídas, Fase 7 pendente
 
 ---

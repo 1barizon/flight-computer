@@ -18,8 +18,9 @@
 
 ### Progresso Atual
 - Fases 1-4 concluídas (sensores e base OOP implementados)
-- Fase 5 em andamento (GPSModule)
-- Fase 6 (FSM 4 estados) será feita na Issue #8
+- Fase 5 concluída (GPSModule)
+- Fase 6 concluída (FSM 4 estados, mergeada via PR #16)
+- Fases 7-9 pendentes (FreeRTOS Tasks, Integração, Adaptação módulos)
 
 ### Motivação
 - Código monolítico (584 linhas) chegou ao **EOL**
@@ -254,11 +255,11 @@ QueueHandle_t logQueue;
 | 3 | BMP585Sensor (classe) | 2 h | ✅ Completa |
 | 4 | LSM6DS3Sensor (classe) | 1.5 h | ✅ Completa |
 | 5 | GPSModule (classe) | 1 h | ✅ Completa |
-| 6 | FSM - Máquina de estados (4 estados) | **4 h** | ⏳ Pendente |
+| 6 | FSM - Máquina de estados (4 estados) | **4 h** | ✅ Completa (PR #16) |
 | 7 | FreeRTOS Tasks | 4 h | ⏳ Pendente |
 | 8 | Integração firmware.ino | 2 h | ⏳ Pendente |
 | 9 | Adaptar módulos dependentes | 1.5 h | ⏳ Pendente |
-| **TOTAL** | | **17.25h** | **26%** |
+| **TOTAL** | | **17.25h** | **44%** |
 
 ---
 
@@ -588,7 +589,7 @@ public:
 
 ### FASE 6: FSM - Máquina de Estados (4 estados) ⏱️ 4h
 
-**Status:** ⏳ Pendente
+**Status:** ✅ **COMPLETA (PR #16)**
 
 **⚠️ ATENÇÃO: Esta é a fase mais crítica - adaptação da lógica validada para 4 estados**
 
@@ -1076,8 +1077,20 @@ void loop() {
 - ✅ Cálculos de Vz e totalAccel especificados
 - ✅ Tempo total ajustado: 16.25h → 17.25h (Fase 6 aumentada)
 
+### 2026-06-24 - Fase 6 Concluída (FSM 4 estados)
+- ✅ `FlightStateMachine` classe implementada (PR #16)
+- ✅ 4 estados: IDLE → ASCENT → DESCENT → LANDED
+- ✅ Sub-eventos: liftoff, burnout, apogee, freefall, parachute
+- ✅ Thresholds validados com dados reais (1,873 pontos)
+- ✅ Timeout de stuck states (30s) implementado
+- ✅ Validações NaN/Inf em todas as entradas
+- ✅ Vz corrigido para m/s (divisão por 1000.0F em BMP585Sensor)
+- ✅ IIR filter (alpha=0.2) com seed na primeira leitura
+
 ### Próximas Etapas
-- ⏳ Iniciar Fase 6 (FSM 4 estados) na Issue #8
+- ⏳ Iniciar Fase 7 (FreeRTOS Tasks)
+- ⏳ Fase 8 (Integração firmware.ino)
+- ⏳ Fase 9 (Adaptar módulos dependentes - remover código legacy)
 
 ---
 
@@ -1126,9 +1139,9 @@ void loop() {
 
 ---
 
-**Última atualização:** 2026-05-06  
-**Versão do documento:** 2.1  
-**Status geral:** 🚀 Fases 1-5 concluídas, Fase 6 em andamento
+**Última atualização:** 2026-06-24  
+**Versão do documento:** 2.2  
+**Status geral:** 🚀 Fases 1-6 concluídas, Fase 7 pendente
 
 ---
 

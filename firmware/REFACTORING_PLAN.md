@@ -256,7 +256,7 @@ QueueHandle_t logQueue;
 | 4 | LSM6DS3Sensor (classe) | 1.5 h | ✅ Completa |
 | 5 | GPSModule (classe) | 1 h | ✅ Completa |
 | 6 | FSM - Máquina de estados (4 estados) | **4 h** | ✅ Completa (PR #16) |
-| 7 | FreeRTOS Tasks | 4 h | 🔄 Em andamento (Task 1 concluída) |
+| 7 | FreeRTOS Tasks | 4 h | 🔄 Em andamento (Tasks 1 e 2 concluídas) |
 | 8 | Integração firmware.ino | 2 h | ⏳ Pendente |
 | 9 | Adaptar módulos dependentes | 1.5 h | ⏳ Pendente |
 | 10 | Comunicação com o Receiver | 2 h | ⏳ Pendente |
@@ -717,11 +717,11 @@ void FlightStateMachine::checkTransitions() {
 
 ### FASE 7: FreeRTOS Tasks ⏱️ 4h
 
-**Status:** 🔄 Em andamento (Task 1 - FlightControl concluída)
+**Status:** 🔄 Em andamento (Tasks 1 e 2 concluídas)
 
 **Objetivos:**
 - [x] Implementar Task 1 (FlightControl - 50Hz)
-- [ ] Implementar Task 2 (Telemetry - 5Hz)
+- [x] Implementar Task 2 (Telemetry - 5Hz)
 - [ ] Implementar Task 3 (Logger - low priority)
 - [x] Criar Queue de comunicação (sensorDataQueue, 25 slots)
 - [x] Configurar Watchdog (5s, apenas Task FlightControl)

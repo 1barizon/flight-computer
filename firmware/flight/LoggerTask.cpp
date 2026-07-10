@@ -75,7 +75,7 @@ bool logMessage(uint8_t taskId, uint8_t level, const String& message) {
   log.taskId    = taskId;
   log.level     = level;
   strncpy(log.message, message.c_str(), sizeof(log.message) - 1);
-
+  log.message[sizeof(log.message)-1] = '\0';
   if (xQueueSend(logQueue, &log, 0) != pdPASS) {
     g_stats.droppedCount++;
     return false;

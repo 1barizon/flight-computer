@@ -66,7 +66,7 @@ SensorData buildSensorData() {
  *       apenas ao entrar em DESCENT (que ocorre no apogeu, cedo demais)
  */
 void deployParachute() {
-  g_parachuteServo.write(MAXPOS);
+  g_parachuteServo.write(SERVO_OPEN);
 }
 
 }  // namespace
@@ -93,12 +93,7 @@ bool initFlightControlTask() {
   }
 
   g_parachuteServo.attach(SERVO_PIN);
-  g_parachuteServo.write(MINPOS);  // Trava o compartimento ate o deploy
-
-  if (esp_task_wdt_init(FLIGHT_CONTROL_WDT_TIMEOUT_S, true) != ESP_OK) {
-    Serial.println("[FlightControl] FATAL: watchdog init failed");
-    return false;
-  }
+  g_parachuteServo.write(SERVO_CLOSED);  // Trava o compartimento ate o deploy
 
   const BaseType_t created = xTaskCreatePinnedToCore(
       taskFlightControl, "FlightControl", FLIGHT_CONTROL_STACK_SIZE,
@@ -115,6 +110,15 @@ bool initFlightControlTask() {
 
 void taskFlightControl(void* pvParameters) {
   (void)pvParameters;
+
+  // Inicializado aqui (nao em initFlightControlTask()) para que o watchdog
+  // so seja armado quando a task que o alimenta esta de fato rodando — se
+  // xTaskCreatePinnedToCore falhasse com o init la, o TWDT ficaria armado
+  // globalmente sem nenhuma task para chamar esp_task_wdt_reset().
+  if (esp_task_wdt_init(FLIGHT_CONTROL_WDT_TIMEOUT_S, true) != ESP_OK) {
+    Serial.println("[FlightControl] ERROR: watchdog init failed");
+    logMessage(TASK_ID_FLIGHT_CONTROL, LOG_LEVEL_ERROR, "Watchdog init failed");
+  }
 
   if (esp_task_wdt_add(nullptr) != ESP_OK) {
     Serial.println("[FlightControl] ERROR: failed to register with watchdog");

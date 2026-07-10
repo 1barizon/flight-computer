@@ -50,29 +50,37 @@ String buildDataFilePath() {
  * @note Formato provisorio — Fase 10 alinha o formato final com o parser
  *       do Receiver. O ultimo campo ("pqd" no header) e' parachute_deployed,
  *       nao packetQuality; rssi/packetQuality reais ainda nao sao emitidos.
+ * @note Monta em um buffer fixo via snprintf (uma unica conversao para
+ *       String no retorno) em vez de ~20 concatenacoes com `+`, que a 5Hz
+ *       fragmentavam o heap em voos longos (>20min) ate causar OOM.
  */
 String assembleTelemetry(const SensorData& data) {
-  return TEAM_ID + "," +
-         String(data.timestamp) + "," +
-         String(data.packet_count) + "," +
-         String(data.altitude, 2) + "," +
-         String(data.temperature, 2) + "," +
-         "0" + ","  // umi — sem sensor de umidade (placeholder ate ser adicionado)
-         + String(data.pressure, 2) + "," +
-         String(data.gyroX, 2) + "," +
-         String(data.gyroY, 2) + "," +
-         String(data.gyroZ, 2) + "," +
-         String(data.accelX, 2) + "," +
-         String(data.accelY, 2) + "," +
-         String(data.accelZ, 2) + "," +
-         String(data.verticalVelocity, 2) + "," +
-         String(data.maxAltitude, 2) + "," +
-         String(static_cast<int>(data.state)) + "," +
-         (data.gps_valid ? String(data.gpsAltitude, 2) : "nan") + "," +
-         (data.gps_valid ? String(data.latitude, 6) : "nan") + "," +
-         (data.gps_valid ? String(data.longitude, 6) : "nan") + "," +
-         String(data.satellites) + "," +
-         String(data.parachute_deployed ? 1 : 0);
+  char gpsAltBuf[16];
+  char latBuf[16];
+  char lonBuf[16];
+
+  if (data.gps_valid) {
+    snprintf(gpsAltBuf, sizeof(gpsAltBuf), "%.2f", data.gpsAltitude);
+    snprintf(latBuf, sizeof(latBuf), "%.6f", data.latitude);
+    snprintf(lonBuf, sizeof(lonBuf), "%.6f", data.longitude);
+  } else {
+    strncpy(gpsAltBuf, "nan", sizeof(gpsAltBuf));
+    strncpy(latBuf, "nan", sizeof(latBuf));
+    strncpy(lonBuf, "nan", sizeof(lonBuf));
+  }
+
+  char buf[256];
+  snprintf(buf, sizeof(buf),
+           "%s,%lu,%u,%.2f,%.2f,0,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,"
+           "%d,%s,%s,%s,%u,%d",
+           TEAM_ID, data.timestamp, data.packet_count, data.altitude,
+           data.temperature,  // "0" fixo = umi, sem sensor de umidade ainda
+           data.pressure, data.gyroX, data.gyroY, data.gyroZ, data.accelX,
+           data.accelY, data.accelZ, data.verticalVelocity, data.maxAltitude,
+           static_cast<int>(data.state), gpsAltBuf, latBuf, lonBuf,
+           data.satellites, data.parachute_deployed ? 1 : 0);
+
+  return String(buf);
 }
 
 /**

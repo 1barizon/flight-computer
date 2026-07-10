@@ -15,10 +15,10 @@
 
 #include "TelemetryTask.h"
 
-#include "config.h"
-#include "filesystem_module.h"
-#include "modules/lora_module.h"
-#include "sensors/GPSModule.h"
+#include "../config.h"
+#include "../modules/filesystem_module.h"
+#include "../modules/lora_module.h"
+#include "../sensors/GPSModule.h"
 #include "FlightControlTask.h"  // extern sensorDataQueue
 #include "LoggerTask.h"
 

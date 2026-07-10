@@ -12,9 +12,9 @@
 #include <esp_timer.h>
 #include <ESP32Servo.h>
 
-#include "config.h"
-#include "BMP585Sensor.h"
-#include "LSM6DS3Sensor.h"
+#include "../config.h"
+#include "../sensors/BMP585Sensor.h"
+#include "../sensors/LSM6DS3Sensor.h"
 #include "FlightStateMachine.h"
 #include "LoggerTask.h"
 

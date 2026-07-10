@@ -2,10 +2,11 @@
  * @file FlightControlTask.h
  * @brief FreeRTOS task that runs the flight FSM at 50Hz (Core 1)
  *
- * Owns the BMP585 barometer, LSM6DS3 IMU and FlightStateMachine
- * instances. Every 20ms it updates both sensors, advances the FSM,
- * consolidates a SensorData snapshot and pushes it to sensorDataQueue
- * for TelemetryTask to consume.
+ * Owns the BMP585 barometer, LSM6DS3 IMU, FlightStateMachine and the
+ * parachute release servo. Every 20ms it updates both sensors, advances
+ * the FSM, deploys the parachute the moment the FSM confirms deploy
+ * conditions, consolidates a SensorData snapshot and pushes it to
+ * sensorDataQueue for TelemetryTask to consume.
  *
  * This is the only safety-critical task in the system: highest
  * priority, pinned to its own core, and monitored by the ESP32

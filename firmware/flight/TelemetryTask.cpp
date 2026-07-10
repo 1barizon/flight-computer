@@ -2,11 +2,12 @@
  * @file TelemetryTask.cpp
  * @brief Implementation of the 5Hz telemetry task
  *
- * CSV field order mirrors the v2.0 draft table in
- * firmware/REFACTORING_PLAN.md (Fase 10). `packetQuality` and real `rssi`
- * are intentionally omitted until Fase 10 defines them — emitting
- * placeholder zeros for those would be misleading to downstream consumers
- * (Receiver / WebUI).
+ * CSV field order does NOT yet match the v2.0 draft table in
+ * firmware/REFACTORING_PLAN.md (Fase 10, still pending): pressure is
+ * emitted in hPa here vs. Pa in the draft, and the last column ("pqd" in
+ * the CSV header) actually carries `parachute_deployed` (0/1) — it is not
+ * `packetQuality`. Real `rssi`/`packetQuality` are not emitted at all yet;
+ * that alignment is Fase 10's job.
  *
  * @see TelemetryTask.h for API and configuration documentation
  * @see firmware/REFACTORING_PLAN.md - Fase 7
@@ -14,11 +15,12 @@
 
 #include "TelemetryTask.h"
 
-#include "../config.h"
-#include "../modules/filesystem_module.h"
-#include "../modules/lora_module.h"
-#include "../sensors/GPSModule.h"
+#include "config.h"
+#include "filesystem_module.h"
+#include "modules/lora_module.h"
+#include "sensors/GPSModule.h"
 #include "FlightControlTask.h"  // extern sensorDataQueue
+#include "LoggerTask.h"
 
 TaskHandle_t g_telemetryTaskHandle = nullptr;
 
@@ -46,7 +48,8 @@ String buildDataFilePath() {
 /**
  * @brief Monta a linha CSV de telemetria (Serial file + LoRa)
  * @note Formato provisorio — Fase 10 alinha o formato final com o parser
- *       do Receiver (rssi/packetQuality ficam pendentes ate la)
+ *       do Receiver. O ultimo campo ("pqd" no header) e' parachute_deployed,
+ *       nao packetQuality; rssi/packetQuality reais ainda nao sao emitidos.
  */
 String assembleTelemetry(const SensorData& data) {
   return TEAM_ID + "," +
@@ -101,6 +104,7 @@ bool initTelemetryTask() {
   g_gps = new GPSModule(&Serial1);
   if (!g_gps->begin()) {
     Serial.println("[Telemetry] WARNING: GPS init failed — continuing without fix");
+    logMessage(TASK_ID_TELEMETRY, LOG_LEVEL_WARN, "GPS init failed");
   }
   g_gps->update();  // Non-blocking best-effort read before building the filename
 
@@ -151,8 +155,17 @@ void taskTelemetry(void* pvParameters) {
     // 1) GPS (non-blocking NMEA feed)
     g_gps->update();
 
-    // 2) Queue receive — bounded wait, never blocks indefinitely
+    // 2) Queue receive — bounded wait, never blocks indefinitely. FlightControl
+    //    produces samples ~10x faster than we consume them (50Hz vs 5Hz), so
+    //    drain any backlog and keep only the freshest sample — otherwise the
+    //    queue fills up and FlightControl silently drops every subsequent
+    //    sample once it's full.
     if (xQueueReceive(sensorDataQueue, &data, pdMS_TO_TICKS(TELEMETRY_QUEUE_TIMEOUT_MS)) == pdPASS) {
+      SensorData newer;
+      while (xQueueReceive(sensorDataQueue, &newer, 0) == pdPASS) {
+        data = newer;
+      }
+
       // Enrich the sample with the current GPS fix (owned by this task only)
       data.gps_valid = g_gps->hasValidFix();
       if (data.gps_valid) {

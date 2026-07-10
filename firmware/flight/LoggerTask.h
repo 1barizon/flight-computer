@@ -31,15 +31,6 @@
 #include "SensorData.h"
 
 //==============================================================================
-// LOG LEVELS (see SensorData.h::getLogLevelName)
-//==============================================================================
-
-constexpr uint8_t LOG_LEVEL_DEBUG = 0;
-constexpr uint8_t LOG_LEVEL_INFO  = 1;
-constexpr uint8_t LOG_LEVEL_WARN  = 2;
-constexpr uint8_t LOG_LEVEL_ERROR = 3;
-
-//==============================================================================
 // TASK CONFIGURATION (AGENTS.md - FreeRTOS Guidelines)
 //==============================================================================
 
@@ -72,7 +63,7 @@ void taskLogger(void* pvParameters);
  * Nao bloqueia (timeout 0): se logQueue estiver cheia, a mensagem e'
  * descartada e contabilizada em getLoggerStats().droppedCount.
  *
- * @param taskId  Identificador da task de origem (1=FlightControl, 2=Telemetry, 3=Logger)
+ * @param taskId  Identificador da task de origem (ver enum TaskId em SensorData.h)
  * @param level   LOG_LEVEL_DEBUG..LOG_LEVEL_ERROR
  * @param message Texto da mensagem (truncado em 127 caracteres)
  * @return true se enfileirada com sucesso

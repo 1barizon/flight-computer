@@ -10,10 +10,13 @@
 
 #include <esp_task_wdt.h>
 #include <esp_timer.h>
+#include <ESP32Servo.h>
 
+#include "config.h"
 #include "BMP585Sensor.h"
-#include "sensors/LSM6DS3Sensor.h"
+#include "LSM6DS3Sensor.h"
 #include "FlightStateMachine.h"
+#include "LoggerTask.h"
 
 TaskHandle_t  g_flightControlTaskHandle = nullptr;
 QueueHandle_t sensorDataQueue           = nullptr;
@@ -23,6 +26,9 @@ namespace {
 BMP585Sensor*       g_baro = nullptr;
 LSM6DS3Sensor*       g_imu = nullptr;
 FlightStateMachine*  g_fsm = nullptr;
+
+Servo g_parachuteServo;
+bool  g_parachuteActuated = false;
 
 FlightControlStats g_stats = {0, 0, 0, 0, 0};
 
@@ -53,6 +59,16 @@ SensorData buildSensorData() {
   return data;
 }
 
+/**
+ * @brief Aciona o servo de liberacao do paraquedas (one-shot, idempotente)
+ * @note Chamada apenas quando a FSM confirma as condicoes de deploy
+ *       (FlightStateMachine::detectParachute — altitude/velocidade), nao
+ *       apenas ao entrar em DESCENT (que ocorre no apogeu, cedo demais)
+ */
+void deployParachute() {
+  g_parachuteServo.write(MAXPOS);
+}
+
 }  // namespace
 
 bool initFlightControlTask() {
@@ -76,7 +92,13 @@ bool initFlightControlTask() {
     return false;
   }
 
-  esp_task_wdt_init(FLIGHT_CONTROL_WDT_TIMEOUT_S, true);
+  g_parachuteServo.attach(SERVO_PIN);
+  g_parachuteServo.write(MINPOS);  // Trava o compartimento ate o deploy
+
+  if (esp_task_wdt_init(FLIGHT_CONTROL_WDT_TIMEOUT_S, true) != ESP_OK) {
+    Serial.println("[FlightControl] FATAL: watchdog init failed");
+    return false;
+  }
 
   const BaseType_t created = xTaskCreatePinnedToCore(
       taskFlightControl, "FlightControl", FLIGHT_CONTROL_STACK_SIZE,
@@ -94,7 +116,11 @@ bool initFlightControlTask() {
 void taskFlightControl(void* pvParameters) {
   (void)pvParameters;
 
-  esp_task_wdt_add(nullptr);
+  if (esp_task_wdt_add(nullptr) != ESP_OK) {
+    Serial.println("[FlightControl] ERROR: failed to register with watchdog");
+    logMessage(TASK_ID_FLIGHT_CONTROL, LOG_LEVEL_ERROR,
+               "Failed to register with watchdog");
+  }
 
   TickType_t lastWakeTime = xTaskGetTickCount();
   const TickType_t period = pdMS_TO_TICKS(FLIGHT_CONTROL_PERIOD_MS);
@@ -114,15 +140,23 @@ void taskFlightControl(void* pvParameters) {
     // 3) Consolidar dados
     const SensorData data = buildSensorData();
 
-    // 4) Queue -> TelemetryTask
+    // 4) Deploy do paraquedas (safety-critical, one-shot)
+    if (data.parachute_deployed && !g_parachuteActuated) {
+      deployParachute();
+      g_parachuteActuated = true;
+      Serial.println("[FlightControl] PARACHUTE DEPLOYED");
+      logMessage(TASK_ID_FLIGHT_CONTROL, LOG_LEVEL_WARN, "Parachute deployed");
+    }
+
+    // 5) Queue -> TelemetryTask
     if (xQueueSend(sensorDataQueue, &data, 0) != pdPASS) {
       g_stats.queueDropCount++;
     }
 
-    // 5) Watchdog
+    // 6) Watchdog
     esp_task_wdt_reset();
 
-    // 6) Metricas de tempo de execucao
+    // 7) Metricas de tempo de execucao
     const int64_t execTimeUs = esp_timer_get_time() - t0;
     g_stats.cycleCount++;
     g_stats.lastExecTimeUs = static_cast<int32_t>(execTimeUs);
@@ -131,6 +165,7 @@ void taskFlightControl(void* pvParameters) {
     }
     if (execTimeUs > static_cast<int64_t>(FLIGHT_CONTROL_PERIOD_MS) * 1000) {
       g_stats.overrunCount++;
+      logMessage(TASK_ID_FLIGHT_CONTROL, LOG_LEVEL_WARN, "Cycle overrun");
     }
   }
 }

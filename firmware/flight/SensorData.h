@@ -130,6 +130,25 @@ struct SensorData {
 };
 
 /**
+ * @brief Identifiers for tasks that send log messages via LoggerTask
+ * @see LogMessage::taskId
+ */
+enum TaskId : uint8_t {
+  TASK_ID_FLIGHT_CONTROL = 1,
+  TASK_ID_TELEMETRY      = 2,
+  TASK_ID_LOGGER         = 3,
+};
+
+/**
+ * @brief Log severity levels
+ * @see getLogLevelName()
+ */
+constexpr uint8_t LOG_LEVEL_DEBUG = 0;
+constexpr uint8_t LOG_LEVEL_INFO  = 1;
+constexpr uint8_t LOG_LEVEL_WARN  = 2;
+constexpr uint8_t LOG_LEVEL_ERROR = 3;
+
+/**
  * @brief Log message structure
  *
  * Sent by any task to LoggerTask via logQueue.
@@ -144,8 +163,8 @@ struct SensorData {
 struct LogMessage {
   char message[128];          ///< Log message (max 127 chars + null terminator)
   unsigned long timestamp;    ///< Timestamp in milliseconds
-  uint8_t taskId;             ///< ID of sending task (1=FSM, 2=Telemetry, 3=Logger)
-  uint8_t level;              ///< Severity level (0=DEBUG, 1=INFO, 2=WARN, 3=ERROR)
+  uint8_t taskId;             ///< ID of sending task (see TaskId enum above)
+  uint8_t level;              ///< Severity level (see LOG_LEVEL_* constants above)
 
   /**
    * @brief Constructor with safe initialization

@@ -78,26 +78,26 @@ void printBoth(const String &message);
 /**
  * Initialize servo motor and set to closed position
  * 
- * Attaches servo to control pin and moves it to locked position (MINPOS).
+ * Attaches servo to control pin and moves it to locked position (SERVO_CLOSED).
  * The 500ms delay allows servo to reach position before flight operations begin.
- * 
+ *
  * Servo positions:
- * - MINPOS (90°): Parachute compartment locked/closed
- * - MAXPOS (0°): Parachute compartment released/open
- * 
+ * - SERVO_CLOSED (90°): Parachute compartment locked/closed
+ * - SERVO_OPEN (0°): Parachute compartment released/open
+ *
  * @note Call during setup() before flight operations
- * @see config.h for SERVO_PIN, MINPOS, and MAXPOS definitions
+ * @see config.h for SERVO_PIN, SERVO_CLOSED, and SERVO_OPEN definitions
  */
 void setupServo()
 {
   // Attach servo to PWM pin
   ParachuteServo.attach(SERVO_PIN);
-  
+
   // Wait for servo to initialize
   delay(500);
-  
+
   // Move to closed/locked position
-  ParachuteServo.write(MINPOS);
+  ParachuteServo.write(SERVO_CLOSED);
 }
 
 //==============================================================================
@@ -116,9 +116,9 @@ void setupServo()
  * 3. !parachute_deployed (not already deployed)
  * 
  * Deployment sequence (non-blocking):
- * 1. Command servo to MAXPOS (open position)
+ * 1. Command servo to SERVO_OPEN (open position)
  * 2. Record command timestamp and continue loop immediately
- * 3. In subsequent calls, verify servo reached MAXPOS (or timeout at 500ms)
+ * 3. In subsequent calls, verify servo reached SERVO_OPEN (or timeout at 500ms)
  * 4. Report error only if timeout occurs without reaching expected position
  * 
  * After deployment:
@@ -138,7 +138,7 @@ void handleParachute(float altitude, float velocity)
   // Non-blocking verification phase: check servo state across loop iterations
   if (parachute_verification_pending)
   {
-    if (ParachuteServo.read() == MAXPOS)
+    if (ParachuteServo.read() == SERVO_OPEN)
     {
       parachute_verification_pending = false;
     }
@@ -157,7 +157,7 @@ void handleParachute(float altitude, float velocity)
         (altitude < ALTITUDE_THRESHOLD || abs(velocity) > VELOCITY_THRESHOLD))
     {
       // Command servo to open position
-      ParachuteServo.write(MAXPOS);
+      ParachuteServo.write(SERVO_OPEN);
 
       // Start asynchronous verification without blocking the flight loop
       parachute_command_millis = millis();

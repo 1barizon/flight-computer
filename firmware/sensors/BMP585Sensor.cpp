@@ -102,6 +102,10 @@ bool BMP585Sensor::isReady() { return _ready; }
 
 float BMP585Sensor::getAltitude() const { return altitude; }
 
+float BMP585Sensor::getPressure() const { return pressure; }
+
+float BMP585Sensor::getTemperature() const { return temperature; }
+
 float BMP585Sensor::getMaxAltitude() const { return max_altitude; }
 
 float BMP585Sensor::getVerticalVelocity() const { return vertical_velocity; }

@@ -98,16 +98,16 @@
 //==============================================================================
 
 /**
- * Maximum servo position (parachute open)
+ * Servo position: parachute open
  * Value in degrees: 0° = fully open
  */
-const int MAXPOS = 0;
+const int SERVO_OPEN = 0;
 
 /**
- * Minimum servo position (parachute closed)
+ * Servo position: parachute closed
  * Value in degrees: 90° = fully closed
  */
-const int MINPOS = 90;
+const int SERVO_CLOSED = 90;
 
 /**
  * Altitude drop threshold in meters
@@ -139,7 +139,7 @@ const float VELOCITY_THRESHOLD = 80.0;
  * Used as prefix in all telemetry transmissions
  * Allows identifying data from different teams
  */
-const String TEAM_ID = "#100";
+constexpr const char* TEAM_ID = "#100";
 
 //==============================================================================
 // FILESYSTEM CONFIGURATION

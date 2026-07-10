@@ -32,6 +32,8 @@ public:
 
   // Barometer-specific getters
   float getAltitude() const;
+  float getPressure() const;
+  float getTemperature() const;
   float getMaxAltitude() const;
   float getVerticalVelocity() const;  // CRITICAL: Computed via numerical differentiation
   void checkHighest();

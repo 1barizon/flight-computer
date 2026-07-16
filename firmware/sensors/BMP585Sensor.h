@@ -10,7 +10,7 @@
 #define BMP585_SENSOR_H
 
 #include "ISensor.h"
-#include <Adafruit_BMP5XX.h>
+#include <Adafruit_BMP5xx.h>
 #include <Arduino.h>
 
 /**

@@ -29,7 +29,7 @@
 #include <Arduino.h>
 #include <ESP32Servo.h>
 #include "config.h"
-#include "bmp280_sensor.h"
+
 
 //==============================================================================
 // PARACHUTE GLOBAL VARIABLES

@@ -15,6 +15,7 @@
 #include "../config.h"
 #include "../sensors/BMP585Sensor.h"
 #include "../sensors/LSM6DS3Sensor.h"
+#include "../modules/parachute_module.h"
 #include "FlightStateMachine.h"
 #include "LoggerTask.h"
 
@@ -90,6 +91,11 @@ bool initFlightControlTask() {
   if (sensorDataQueue == nullptr) {
     Serial.println("[FlightControl] FATAL: failed to create sensorDataQueue");
     return false;
+  }
+
+  if(!setupServo()){
+    Serial.println("[FlightControl] FATAL: failed to close parachute")
+    return false
   }
 
   g_parachuteServo.attach(SERVO_PIN);

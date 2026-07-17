@@ -107,40 +107,26 @@ QueueHandle_t logQueue;
  * 
  * @see setup() is called automatically once by Arduino framework
  */
-void setup()
-{
-  //----------------------------------------------------------------------------
-  // Communication and Hardware Initialization
-  //----------------------------------------------------------------------------
-  
-  Serial.begin(115200);   // Initialize USB serial at 115200 baud
-  Wire.begin();           // Initialize I2C bus for sensors (SDA/SCL default pins)
-  
-  baroSensor = new BMP585Sensor();
-  imuSensor = new LSM6DS3Sensor();
-  gpsModule = new GPSModule(&Serial1);
+void setup() {
+  Serial.begin(115200);
+  Wire.begin();
 
-  if (!baroSensor->begin() || !imuSensor->begin() || !gpsModule->begin()) {
-    Serial.println("FATAL: Sensor init failed!");
-    while(1);
+  if (!initFlightControlTask()) {
+    Serial.println("FATAL: FlightControl init failed");
+    ESP.restart();
   }
-  
-  flightFSM = new FlightStateMachine(baroSensor, imuSensor);
-  
-   setupServo();
-   setupLittleFS();
-   setupLoRa();
-  
-  sensorDataQueue = xQueueCreate(25, sizeof(SensorData));
-  logQueue = xQueueCreate(50, sizeof(LogMessage));
-  
-  esp_task_wdt_init(5, true);
-  
-  xTaskCreatePinnedToCore(taskFlightControl, "FlightCtrl", 8192, NULL, 20, NULL, 1);
-  xTaskCreatePinnedToCore(taskTelemetry, "Telemetry", 16384, NULL, 5, NULL, 0);
-  xTaskCreatePinnedToCore(taskLogger, "Logger", 4096, NULL, 1, NULL, 0);
-  
- 
+  if (!initTelemetryTask()) {
+    Serial.println("FATAL: Telemetry init failed");
+    ESP.restart();
+  }
+  if (!initLoggerTask()) {
+    Serial.println("FATAL: Logger init failed");
+    ESP.restart();
+  }
+}
+
+void loop() {
+  vTaskDelay(portMAX_DELAY);
 }
 
 //==============================================================================

@@ -15,6 +15,7 @@ build/
 .piolibdeps
 .clang_complete
 .gcc-flags.json
+platformio.ini
 
 # Python
 __pycache__/

@@ -88,16 +88,20 @@ void printBoth(const String &message);
  * @note Call during setup() before flight operations
  * @see config.h for SERVO_PIN, SERVO_CLOSED, and SERVO_OPEN definitions
  */
-void setupServo()
+bool setupServo()
 {
   // Attach servo to PWM pin
-  ParachuteServo.attach(SERVO_PIN);
+  if (ParachuteServo.attach(SERVO_PIN) == 0){
+    return false
+  }
 
   // Wait for servo to initialize
   delay(500);
 
   // Move to closed/locked position
   ParachuteServo.write(SERVO_CLOSED);
+
+  return true;
 }
 
 //==============================================================================

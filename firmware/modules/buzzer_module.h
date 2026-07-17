@@ -43,6 +43,10 @@
  * @see buzzSignal() is called by telemetry_module.h for operation feedback
  * @see BUZZER_PIN is defined in config.h
  */
+
+
+
+
 void buzzSignal(String signal)
 {
   int frequency = 500;   // Tone frequency in Hz (500Hz chosen for audibility)

@@ -43,15 +43,21 @@
 //==============================================================================
 
 #include "config.h"             // Global configuration and constants
-#include "bmp280_sensor.h"      // Barometric pressure and altitude sensor
-#include "mpu6050_sensor.h"     // Inertial measurement unit (IMU - legacy)
-#include "gps_module.h"         // GPS positioning and timing
-#include "lora_module.h"        // LoRa long-range radio communication
-#include "filesystem_module.h"  // LittleFS data storage
-#include "parachute_module.h"   // Parachute deployment control
-#include "buzzer_module.h"      // Audio feedback and alerts
-#include "telemetry_module.h"   // Data aggregation and logging
-#include "sensors/LSM6DS3Sensor.h"  // New IMU sensor (v2.0 migration)
+
+#include "sensors/BMP585Sensor.h"
+#include "sensors/LSM6DS3Sensor.h"
+#include "sensors/GPSModule.h"
+#include "flight/FlightStateMachine.h"
+#include "flight/FlightControlTask.h"
+#include "flight/TelemetryTask.h"
+#include "flight/LoggerTask.h"
+
+
+#include "modules/buzzer_module.h"
+#include "modules/filesystem_module.h"
+#include "modules/lora_module.h"
+#include "modules/parachute_module.h"
+
 
 //==============================================================================
 // GLOBAL SENSOR OBJECTS (v2.0 - OOP Migration)
@@ -66,7 +72,14 @@
  * @see LSM6DS3Sensor class in sensors/LSM6DS3Sensor.h
  * @see telemetry_module.cpp for usage
  */
-LSM6DS3Sensor* g_lsm_sensor = nullptr;
+
+BMP585Sensor* baroSensor;
+LSM6DS3Sensor* imuSensor;
+GPSModule* gpsModule;
+FlightStateMachine* flightFSM;
+
+QueueHandle_t sensorDataQueue;
+QueueHandle_t logQueue;
 
 //==============================================================================
 // SETUP - ONE-TIME INITIALIZATION
@@ -94,92 +107,28 @@ LSM6DS3Sensor* g_lsm_sensor = nullptr;
  * 
  * @see setup() is called automatically once by Arduino framework
  */
-void setup()
-{
-  //----------------------------------------------------------------------------
-  // Communication and Hardware Initialization
-  //----------------------------------------------------------------------------
-  
-  Serial.begin(115200);   // Initialize USB serial at 115200 baud
-  Wire.begin();           // Initialize I2C bus for sensors (SDA/SCL default pins)
-  setupServo();           // Initialize servo motor for parachute deployment
-  
-  //----------------------------------------------------------------------------
-  // Startup Delay and Status Messages
-  //----------------------------------------------------------------------------
-  
-  pinMode(BUZZER_PIN, OUTPUT);  // Configure buzzer pin as output
-  
-  // 5-second countdown with status messages
-  // Provides time to open Serial monitor and stabilize sensors
-  for (int i = 0; i < 5; i++)
-  {
-    Serial.println("Initializing...");
-    delay(1000);  // 1 second delay per iteration
-  }
+void setup() {
+  Serial.begin(115200);
+  Wire.begin();
+  pinMode(BUZZER_PIN, OUTPUT)
 
-  //----------------------------------------------------------------------------
-  // GPS Time Acquisition and Filename Generation
-  //----------------------------------------------------------------------------
-  
-  setupGPS();  // Initialize GPS module and begin receiving data
+  if (!initFlightControlTask()) {
+    Serial.println("FATAL: FlightControl init failed");
+    ESP.restart();
+  }
+  if (!initTelemetryTask()) {
+    Serial.println("FATAL: Telemetry init failed");
+    ESP.restart();
+  }
+  if (!initLoggerTask()) {
+    Serial.println("FATAL: Logger init failed");
+    ESP.restart();
+  }
+}
 
-  // Attempt to get GPS time for unique filename, fallback to default if unavailable
-  // Format: HHMMSS-data.csv (e.g., "143052-data.csv" for 2:30:52 PM)
-  String time_data = getGPSTimeString();
-  file_dir = "/" + time_data + "-" + file_name;
-  Serial.print("Saving data to: ");
-  Serial.println(file_dir);
-
-  //----------------------------------------------------------------------------
-  // Filesystem Initialization and Data File Creation
-  //----------------------------------------------------------------------------
-  
-  // CSV header defining all telemetry fields
-  String data_header = "TEAM_ID,millis,count,altp,temp,umi,p,gp,gr,gy,ap,ar,ay,hora,data,alt,lat,lon,sat,pqd";
-  
-  // Mount filesystem and create data file with header
-  // Critical operation - system will restart on failure
-  if (!(setupLittleFS() && writeFile(file_dir, data_header)))
-  {
-    Serial.println("Filesystem error!");
-    buzzSignal("Alert");    // 5 rapid beeps to indicate error
-    delay(3000);            // Allow time to read error message
-    ESP.restart();          // Restart system to retry initialization
-  }
-
-  //----------------------------------------------------------------------------
-  // Sensor and Communication Module Initialization
-  //----------------------------------------------------------------------------
-  
-  // Initialize all sensors and LoRa radio
-  // Non-critical - system continues if initialization fails
-  if (!(setupBMP() && setupMPU() && setupLoRa()))
-  {
-    printBoth("Module configuration error!");  // Log error to Serial and LoRa
-    buzzSignal("Alert");                       // Audio alert (5 beeps)
-    delay(3000);                               // Delay for error acknowledgment
-  }
-  else
-  {
-    printBoth("All modules initialized successfully!");  // Success message
-    buzzSignal("Success");                                // Audio confirmation (3 beeps)
-  }
-  
-  //----------------------------------------------------------------------------
-  // LSM6DS3 Initialization (v2.0 Migration)
-  //----------------------------------------------------------------------------
-  
-  // Initialize new LSM6DS3 IMU sensor if available
-  // This is a v2.0 feature that will eventually replace MPU6050
-  g_lsm_sensor = new LSM6DS3Sensor();
-  if (g_lsm_sensor != nullptr && g_lsm_sensor->begin()) {
-    printBoth("LSM6DS3 IMU initialized successfully!");
-  } else {
-    printBoth("LSM6DS3 initialization failed - will use MPU6050 fallback");
-    delete g_lsm_sensor;
-    g_lsm_sensor = nullptr;
-  }
+void loop() {
+  vTaskDelay(portMAX_DELAY);
+}
 
 //==============================================================================
 // MAIN LOOP - CONTINUOUS OPERATION
@@ -214,58 +163,3 @@ void setup()
  * @see INTERVAL is defined in config.h (default: 200ms)
  * @see handleParachute() in parachute_module.h for deployment logic
  */
-void loop()
-{
-  //----------------------------------------------------------------------------
-  // Time-Based Execution Control
-  //----------------------------------------------------------------------------
-  
-  unsigned long current_millis = millis();  // Get current time in milliseconds
-  
-  // Execute data logging and control logic at fixed interval (200ms)
-  if (current_millis - previous_millis >= INTERVAL)
-  {
-    //--------------------------------------------------------------------------
-    // Sensor Updates
-    //--------------------------------------------------------------------------
-    
-    // Update LSM6DS3 sensor if available (v2.0 migration)
-    if (g_lsm_sensor != nullptr) {
-      g_lsm_sensor->update();
-    }
-    
-    //--------------------------------------------------------------------------
-    // Sensor Reading and Calculation
-    //--------------------------------------------------------------------------
-    
-    // Read current altitude from pressure sensor
-    float altitude = BMP.readAltitude(base_pressure);
-    
-    // Calculate vertical velocity (m/s) from altitude change over time
-    // Positive = ascending, Negative = descending
-    float velocity = (altitude - previous_altitude) / ((current_millis - previous_millis) / 1000.0);
-    
-    //--------------------------------------------------------------------------
-    // Data Logging and Telemetry
-    //--------------------------------------------------------------------------
-    
-    // Log complete telemetry packet to Serial, LoRa, and filesystem
-    logData(current_millis, parachute_deployed);
-    
-    //--------------------------------------------------------------------------
-    // Flight State Management
-    //--------------------------------------------------------------------------
-    
-    // Update maximum altitude reached (for apogee detection)
-    checkHighest(altitude);
-    
-    // Evaluate parachute deployment conditions and deploy if criteria met
-    handleParachute(altitude, velocity);
-    
-    //--------------------------------------------------------------------------
-    // Timestamp Update for Next Cycle
-    //--------------------------------------------------------------------------
-    
-    previous_millis = current_millis;  // Update timestamp for next interval
-  }
-}

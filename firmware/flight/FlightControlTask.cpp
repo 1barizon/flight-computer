@@ -15,6 +15,7 @@
 #include "../config.h"
 #include "../sensors/BMP585Sensor.h"
 #include "../sensors/LSM6DS3Sensor.h"
+#include "../modules/parachute_module.h"
 #include "FlightStateMachine.h"
 #include "LoggerTask.h"
 
@@ -92,8 +93,12 @@ bool initFlightControlTask() {
     return false;
   }
 
-  g_parachuteServo.attach(SERVO_PIN);
-  g_parachuteServo.write(SERVO_CLOSED);  // Trava o compartimento ate o deploy
+  if(!setupServo()){
+    Serial.println("[FlightControl] FATAL: failed to close parachute")
+    return false
+  }
+
+  
 
   const BaseType_t created = xTaskCreatePinnedToCore(
       taskFlightControl, "FlightControl", FLIGHT_CONTROL_STACK_SIZE,

@@ -98,8 +98,7 @@ bool initFlightControlTask() {
     return false
   }
 
-  g_parachuteServo.attach(SERVO_PIN);
-  g_parachuteServo.write(SERVO_CLOSED);  // Trava o compartimento ate o deploy
+  
 
   const BaseType_t created = xTaskCreatePinnedToCore(
       taskFlightControl, "FlightControl", FLIGHT_CONTROL_STACK_SIZE,

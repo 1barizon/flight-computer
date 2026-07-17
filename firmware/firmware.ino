@@ -110,6 +110,7 @@ QueueHandle_t logQueue;
 void setup() {
   Serial.begin(115200);
   Wire.begin();
+  pinMode(BUZZER_PIN, OUTPUT)
 
   if (!initFlightControlTask()) {
     Serial.println("FATAL: FlightControl init failed");

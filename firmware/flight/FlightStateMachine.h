@@ -116,6 +116,10 @@ private:
   bool _freefallDetected;
   bool _parachuteDeployed;
 
+  // Parachute deploy confirmation counter (Option A: deploy on apogee +
+  // stable negative Vz, never on ascent or near ground)
+  uint8_t _parachuteConfirmCount;
+
   // IIR filter state for accelerometer (matches test/FSM/FSM.ino, ALPHA=0.2)
   float    _filtAx;
   float    _filtAy;

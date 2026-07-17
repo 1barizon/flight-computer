@@ -33,6 +33,7 @@ FlightStateMachine::FlightStateMachine(BMP585Sensor* baro, LSM6DS3Sensor* imu)
       _apogeeDetected(false),
       _freefallDetected(false),
       _parachuteDeployed(false),
+      _parachuteConfirmCount(0),
       _filtAx(0.0f),
       _filtAy(0.0f),
       _filtAz(0.0f),
@@ -60,6 +61,7 @@ void FlightStateMachine::reset() {
   _apogeeDetected   = false;
   _freefallDetected = false;
   _parachuteDeployed = false;
+  _parachuteConfirmCount = 0;
   _filtAx = _filtAy = _filtAz = 0.0f;
   _firstReading = true;
   _stateEnteredAt = millis();
@@ -121,23 +123,32 @@ void FlightStateMachine::update() {
       }
       if (!_apogeeDetected && detectApogee(vz, _filtAz)) {
         _apogeeDetected = true;
+        _parachuteConfirmCount = 0;  // Reset deploy confirmation at apogee
         transitionTo(DESCENT);
       } else if ((millis() - _stateEnteredAt) >= STATE_TIMEOUT_MS) {
         Serial.printf("[FSM] TIMEOUT ASCENT (%.0fs) -> forcing DESCENT\n", STATE_TIMEOUT_MS / 1000.0f);
         _apogeeDetected = true;
+        _parachuteConfirmCount = 0;
         transitionTo(DESCENT);
       }
       break;
 
     case DESCENT:
-      // Freefall and parachute are informational sub-events within descent.
+      // Freefall is an informational sub-event within descent.
       if (!_freefallDetected && detectFreefall(vz, height, acc)) {
         _freefallDetected = true;
         Serial.printf("[FSM] FREEFALL h=%.1f vz=%.2f acc=%.2f\n", height, vz, acc);
       }
+      // Option A: deploy immediately after apogee, but only once descent is
+      // confirmed by a stable negative Vz (PARACHUTE_CONFIRM_CYCLES samples)
+      // and above the ground guard. Never deploys on ascent or near ground.
       if (!_parachuteDeployed && detectParachute(height, vz)) {
-        _parachuteDeployed = true;
-        Serial.printf("[FSM] PARACHUTE DEPLOYED h=%.1f vz=%.2f\n", height, vz);
+        if (++_parachuteConfirmCount >= PARACHUTE_CONFIRM_CYCLES) {
+          _parachuteDeployed = true;
+          Serial.printf("[FSM] PARACHUTE DEPLOYED h=%.1f vz=%.2f\n", height, vz);
+        }
+      } else {
+        _parachuteConfirmCount = 0;
       }
       if (detectLanded(vz, height)) {
         transitionTo(LANDED);
@@ -218,8 +229,11 @@ bool FlightStateMachine::detectFreefall(float vz, float height, float totalAcc) 
 }
 
 // test/FSM/FSM.ino lines 111-113
+// Option A: deploy trigger = after apogee (state is DESCENT) AND a stable
+// negative Vz confirming descent AND still above the ground guard. There is
+// intentionally NO upper ceiling: the chute opens at apogee, not at 100 m.
 bool FlightStateMachine::detectParachute(float height, float vz) const {
-  return (height <= PARACHUTE_ALTITUDE && vz < 0.0f);
+  return (height > PARACHUTE_MIN_ALTITUDE && vz < PARACHUTE_CONFIRM_VZ);
 }
 
 // test/FSM/FSM.ino lines 115-117

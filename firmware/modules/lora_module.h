@@ -92,7 +92,8 @@ bool setupLoRa()
  * @note Maximum packet size depends on LoRa configuration (typically 255 bytes)
  * @note Transmission time increases with message length
  * @note Function blocks until transmission completes
- * @see printBoth() in telemetry_module.h for combined Serial+LoRa output
+ * @note TelemetryTask builds the message with snprintf and transmits via
+ *       sendLoRa() + Serial (telemetry_module.h was removed in v2.0)
  */
 void sendLoRa(const String &message)
 {

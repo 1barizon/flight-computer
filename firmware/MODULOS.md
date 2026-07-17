@@ -43,10 +43,13 @@ Módulo de gerenciamento do sistema de arquivos LittleFS:
 - `appendFile()` - Adiciona dados a arquivo existente
 
 ### 7. `parachute_module.h`
-Módulo de controle do paraquedas e servo motor:
-- `setupServo()` - Inicializa servo motor na posição fechada
-- `handleParachute()` - Gerencia lógica de abertura do paraquedas baseada em altitude e velocidade
-- Variáveis globais: `ParachuteServo`, `parachute_deployed`
+Módulo do atuador do paraquedas (servo motor):
+- `ParachuteServo` - Objeto Servo dono do atuador
+- `setupServo()` - Inicializa o servo na posição fechada (SERVO_CLOSED)
+- NOTA (v2.0 / Opção A): a DECISÃO de deploy saiu deste módulo. Agora quem
+  decide é a FlightStateMachine (detecção de apogeu) e quem atua é a
+  FlightControlTask (ParachuteServo.write(SERVO_OPEN)). As funções legadas
+  `handleParachute()` e `printBoth()` foram REMOVIDAS — não existem mais.
 
 ### 8. `buzzer_module.h`
 Módulo de controle do buzzer:

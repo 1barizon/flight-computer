@@ -28,7 +28,6 @@ BMP585Sensor*       g_baro = nullptr;
 LSM6DS3Sensor*       g_imu = nullptr;
 FlightStateMachine*  g_fsm = nullptr;
 
-Servo g_parachuteServo;
 bool  g_parachuteActuated = false;
 
 FlightControlStats g_stats = {0, 0, 0, 0, 0};
@@ -63,11 +62,11 @@ SensorData buildSensorData() {
 /**
  * @brief Aciona o servo de liberacao do paraquedas (one-shot, idempotente)
  * @note Chamada apenas quando a FSM confirma as condicoes de deploy
- *       (FlightStateMachine::detectParachute — altitude/velocidade), nao
- *       apenas ao entrar em DESCENT (que ocorre no apogeu, cedo demais)
+ *       (FlightStateMachine::detectParachute — apogeu + Vz negativo estavel,
+ *       Opcao A). O servo (ParachuteServo) e' dono deste modulo.
  */
 void deployParachute() {
-  g_parachuteServo.write(SERVO_OPEN);
+  ParachuteServo.write(SERVO_OPEN);
 }
 
 }  // namespace

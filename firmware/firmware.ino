@@ -162,5 +162,7 @@ void loop() {
  * 
  * @see loop() is called repeatedly by Arduino framework
  * @see INTERVAL is defined in config.h (default: 200ms)
- * @see handleParachute() in parachute_module.h for deployment logic
+ * @see FlightStateMachine (flight/FlightStateMachine.cpp) decides WHEN to
+ *       deploy (apogee detection, Option A); this file only owns the servo
+ *       actuator (setupServo / ParachuteServo).
  */

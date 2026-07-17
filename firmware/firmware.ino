@@ -163,7 +163,3 @@ void loop() {
  * @see INTERVAL is defined in config.h (default: 200ms)
  * @see handleParachute() in parachute_module.h for deployment logic
  */
-void loop()
-{
-  vTaskDelay(portMAX_DELAY)
-}

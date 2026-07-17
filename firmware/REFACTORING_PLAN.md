@@ -824,14 +824,30 @@ xTaskCreatePinnedToCore(taskLogger, "Logger", 4096, NULL, 1, NULL, 0);
 
 ### FASE 8: Integração firmware.ino ⏱️ 2h
 
-**Status:** ⏳ Pendente
+**Status:** ✅ Concluída
 
-**Objetivos:**
-- [ ] Refatorar `firmware.ino` principal
-- [ ] Criar tasks no `setup()`
-- [ ] `loop()` vazio (tasks assumem controle)
+**Objetivos (atendidos):**
+- [x] Refatorar `firmware.ino` principal (apenas setup/loop + includes)
+- [x] Criar tasks via `init*Task()` functions (cada task possui seus objetos, filas e watchdog)
+- [x] `loop()` vazio (tasks assumem controle via FreeRTOS)
+- [x] Remover globais órfãs do `.ino` (sensores/filas vivem dentro das init functions)
 
-**Estrutura:**
+**Decisões de arquitetura (revisadas vs. rascunho original):**
+- Os objetos (`g_baro`, `g_imu`, `g_fsm`, `g_gps`, filas) NÃO são globais no
+  `.ino`; cada `init*Task()` os cria e os encapsula. O `firmware.ino` só chama
+  `initFlightControlTask()` / `initTelemetryTask()` / `initLoggerTask()`.
+- O **watchdog (TWDT) é armado DENTRO de `taskFlightControl`**, não no
+  `setup()`. Motivo: evita um TWDT globalmente armado sem nenhuma task para
+  chamar `esp_task_wdt_reset()` se o `xTaskCreatePinnedToCore` falhar.
+- As filas usam constants em `config.h` (`SENSOR_DATA_QUEUE_LEN`,
+  `LOG_QUEUE_LEN`), não hardcoded.
+- `TelemetryTask` drena a `sensorDataQueue` mantendo só a amostra mais nova
+  (a 50Hz produz, a 5Hz consome — descarta as intermediárias, não perde a
+  última). Não usa `xQueueReceive(..., 0)` simples que descartaria dados.
+- Stack sizes e pinagem de core vêm de `config.h` (FLIGHT_CONTROL_STACK_SIZE,
+  FLIGHT_CONTROL_CORE, etc.).
+
+**Estrutura (fiel à implementação):**
 ```cpp
 #include <Wire.h>
 #include <SPI.h>
@@ -849,47 +865,36 @@ xTaskCreatePinnedToCore(taskLogger, "Logger", 4096, NULL, 1, NULL, 0);
 #include "modules/lora_module.h"
 #include "modules/parachute_module.h"
 
-BMP585Sensor* baroSensor;
-LSM6DS3Sensor* imuSensor;
-GPSModule* gpsModule;
-FlightStateMachine* flightFSM;
-
-QueueHandle_t sensorDataQueue;
-QueueHandle_t logQueue;
+// Nenhuma global de sensor/fila aqui: cada init*Task() as cria e encapsula.
 
 void setup() {
   Serial.begin(115200);
   Wire.begin();
-  
-  baroSensor = new BMP585Sensor();
-  imuSensor = new LSM6DS3Sensor();
-  gpsModule = new GPSModule(&Serial1);
-  
-  if (!baroSensor->begin() || !imuSensor->begin() || !gpsModule->begin()) {
-    Serial.println("FATAL: Sensor init failed!");
-    while(1);
+  pinMode(BUZZER_PIN, OUTPUT);
+
+  if (!initFlightControlTask()) {        // cria g_baro/g_imu/g_fsm, sensorDataQueue, servo
+    Serial.println("FATAL: FlightControl init failed");
+    ESP.restart();
   }
-  
-  flightFSM = new FlightStateMachine(baroSensor, imuSensor);
-  
-   setupServo();
-   setupLittleFS();
-   setupLoRa();
-  
-  sensorDataQueue = xQueueCreate(25, sizeof(SensorData));
-  logQueue = xQueueCreate(50, sizeof(LogMessage));
-  
-  esp_task_wdt_init(5, true);
-  
-  xTaskCreatePinnedToCore(taskFlightControl, "FlightCtrl", 8192, NULL, 20, NULL, 1);
-  xTaskCreatePinnedToCore(taskTelemetry, "Telemetry", 16384, NULL, 5, NULL, 0);
-  xTaskCreatePinnedToCore(taskLogger, "Logger", 4096, NULL, 1, NULL, 0);
+  if (!initTelemetryTask()) {            // cria g_gps, consome sensorDataQueue, LoRa/file fan-out
+    Serial.println("FATAL: Telemetry init failed");
+    ESP.restart();
+  }
+  if (!initLoggerTask()) {               // cria logQueue, logger Serial/file
+    Serial.println("FATAL: Logger init failed");
+    ESP.restart();
+  }
+  // O TWDT e' armado DENTRO de taskFlightControl (apos a task existir de fato).
 }
 
 void loop() {
   vTaskDelay(portMAX_DELAY);  // Tasks controlam tudo
 }
 ```
+
+**Nota:** o watchdog NÃO é armado no `setup()` (o rascunho original sugeria
+`esp_task_wdt_init(5, true)` global). A implementação real o arma dentro de
+`taskFlightControl` para não deixar um TWDT armado sem task para resetá-lo.
 
 **Validação:**
 - [ ] Compilação OK

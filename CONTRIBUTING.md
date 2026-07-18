@@ -139,14 +139,22 @@ Before using a new library:
 ## Testing
 
 - Test locally before submitting
-- For firmware, compile with `Sketch > Verify`
+- For firmware:
+  - Arduino IDE: `Sketch > Verify` (Board: ESP32-C3 Dev Module)
+  - PlatformIO: `platformio run -e esp32-c3` (build) /
+    `platformio run -e esp32-c3 -t upload` (flash)
 - Check for warnings and optimizations
 - Test on physical board when possible
+- Run offline validators:
+  - `python3 extras/FSM_tester/FSM_Tester.py`
+  - `python3 extras/validate_telemetry_format.py`
 
 ## Documentation
 
 - Update [software.md](docs/software.md) for code changes
 - Update [hardware.md](docs/hardware.md) for hardware changes
+- Update [telemetry-format.md](docs/telemetry-format.md) when changing the
+  telemetry wire format (single source of truth shared with the receiver)
 - Update [flowchart.md](docs/flowchart.md) if flow changes
 - Keep code comments in English
 

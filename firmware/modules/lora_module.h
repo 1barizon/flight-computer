@@ -15,7 +15,7 @@
  * - Remote monitoring and tracking
  * 
  * Communication: SPI bus
- * Frequency: 868 MHz (Europe) or 915 MHz (Americas) - configured in config.h
+ * Frequency: 915 MHz (Americas/Brazil) - configured in config.h (matches receiver-lora)
  * 
  * @author #11
  * @date 2026
@@ -70,7 +70,16 @@ bool setupLoRa()
   // Set synchronization word (network ID)
   // Only devices with same sync word can communicate
   LoRa.setSyncWord(SYNC_WORD);
-  
+
+  // Explicitly match the receiver (recovery-webui/components/receiver-lora)
+  // so the link connects. These equal the LoRa.h defaults, but we set them
+  // explicitly to avoid relying on library defaults.
+  LoRa.setSpreadingFactor(LORA_SF);
+  LoRa.setSignalBandwidth(LORA_BW);
+  LoRa.setCodingRate4(LORA_CR);
+  LoRa.setTxPower(LORA_TX_POWER);
+  LoRa.enableCrc();
+
   return true;
 }
 

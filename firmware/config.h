@@ -32,10 +32,10 @@
 
 /**
  * LoRa module operating frequency in Hz
- * 868 MHz is the ISM frequency used in Europe
- * For Brazil/Americas, consider 915 MHz (915E6)
+ * 915 MHz is the ISM frequency for Brazil/Americas (matches receiver-lora).
+ * (868 MHz is Europe — do not use here.)
  */
-#define LORA_FREQ 868E6
+#define LORA_FREQ 915E6
 
 /**
  * Slave Select (SS/CS) pin for SPI communication with LoRa module
@@ -60,6 +60,15 @@
  * Change this value to create isolated LoRa networks
  */
 #define SYNC_WORD 0xF3
+
+// Spreading factor / bandwidth / coding rate / TX power.
+// Explicitly matched to the receiver (recovery-webui/components/receiver-lora)
+// so the link connects. These are also the LoRa.h defaults, but we set them
+// explicitly to avoid relying on library defaults.
+#define LORA_SF       7      // Spreading Factor 7–12
+#define LORA_BW       125E3  // Bandwidth Hz
+#define LORA_CR       5      // Coding Rate (4/5)
+#define LORA_TX_POWER 17     // dBm
 
 //==============================================================================
 // PIN DEFINITIONS - ACTUATORS

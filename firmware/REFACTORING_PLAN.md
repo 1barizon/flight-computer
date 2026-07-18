@@ -932,67 +932,50 @@ void loop() {
 
 ### FASE 10: Comunicação com o Receiver ⏱️ 2h
 
-**Status:** ⏳ Pendente
+**Status:** ✅ Concluída
 
-**	Contexto:**
-O flight computer transmite telemetria via LoRa para o receiver (recovery-webui/components/receiver-lora/firmware/).
-O receiver é um ESP32 separado que recebe pacotes CSV, faz parse dos campos, adiciona hora/data do GPS local,
-e retransmite para o WebUI. Qualquer mudança no formato de telemetria do flight computer DEVE ser refletida no
-receiver para manter compatibilidade.
+**Contexto:**
+O flight computer transmite telemetria via LoRa para o receiver
+(`recovery-webui/components/receiver-lora/firmware/`). O receiver é um ESP32
+separado que recebe pacotes CSV, faz parse dos campos, adiciona hora/data do
+GPS local, e retransmite para o WebUI. Qualquer mudança no formato de
+telemetria do flight computer DEVE ser refletida no receiver para manter
+compatibilidade — foi feito na Opção B (formato v2.0 conjunto, 22 campos no
+satellite / 24 no protocolo do receiver).
 
-**Formato atual do Receiver (19 campos):**
-```
-TEAM_ID,millis,count,altp,temp,umi,p,gp,gr,gy,ap,ar,ay,alt,lat,lon,sat,rssi
-```
-- `rssi` é fixo em -1 (placeholder, ainda não medido pelo satellite)
+**Decisões da Fase 10:**
+- Formato v2.0 definido campo a campo em `docs/telemetry-format.md`
+  (referência única). O rascunho antigo desta seção estava dessincronizado
+  (`p` em Pa; `packetQuality` no índice 20; caminho errado do receiver) — a
+  fonte de verdade agora é o `telemetry-format.md`.
+- Pressão (`p`) emitida em **hPa** (BMP585), não Pa.
+- `rssi` do satellite é placeholder `0`; o receiver substitui pelo RSSI real
+  do link descendente (`LoRa.packetRssi()`).
+- `umi` (umidade) é `0` fixo — ainda não há sensor de umidade.
+- Rádio alinhado ao receiver: `LORA_FREQ=915E6`, `SYNC_WORD=0xF3`,
+  `LORA_SF=7`, `LORA_BW=125E3`, `LORA_CR=5`, `LORA_TX_POWER=17`, CRC on.
+  (Antes o flight usava 868E6 — nem conectava com o receiver em 915E6.)
 
-**Pendências no receiver (v1.0 desatualizado):**
-- ❌ Recebe 18 campos + TEAM_ID = 19 campos, mas o parser espera apenas 18+TEAM_ID
-- ❌ `hora,data` (do GPS do flight computer) não é transmitido -- o receiver usa seu próprio GPS para timestamp
-- ❌ O receiver espera `ap,ar,ay` nos índices 10-12, mas o formato atual usa `umi,p` nos índices 5-6 e não tem aceleração separada
-- ❌ `rssi` nunca é preenchido (hardcoded -1)
+**Objetivos (atendidos):**
+- [x] Definir formato de telemetria final da v2.0 (campo a campo)
+- [x] Escrever formato em `docs/telemetry-format.md` (referência única)
+- [x] `TelemetryTask::assembleTelemetry` monta o pacote no formato acordado (22 campos)
+- [x] Parser do receiver atualizado (`parseSatellitePacket` → 22 campos na ordem v2.0)
+- [x] `rssi` real: receiver usa `LoRa.packetRssi()` no protocolPacket
+- [x] Validar ponta-a-ponta: `extras/validate_telemetry_format.py` (PASS)
 
-**Objetivos:**
-- [ ] Definir formato de telemetria final da v2.0 (campo a campo)
-- [ ] Escrever formato em `docs/telemetry-format.md` (referência única)
-- [ ] Garantir que `TelemetryTask` (Fase 7) monte o pacote no formato acordado
-- [ ] Atualizar parser do receiver se o formato mudar
-- [ ] Incluir `rssi` real na transmissão (se LoRa API suportar `LoRa.packetRssi()`)
-- [ ] Validar ponta-a-ponta: flight computer transmite -> receiver parse -> retransmite corretamente
-
-**Formato v2.0 proposto (rascunho -- requer alinhamento com receiver):**
-
-| Índice | Campo | Origem | Unidade |
-|--------|-------|--------|---------|
-| 0 | TEAM_ID | config.h | string |
-| 1 | millis | flight computer | ms |
-| 2 | count | flight computer | uint16 |
-| 3 | altp | BMP585Sensor | m (relativo) |
-| 4 | temp | BMP585Sensor | C |
-| 5 | umi | (futuro) | % |
-| 6 | p | BMP585Sensor | Pa |
-| 7 | gx | LSM6DS3Sensor | deg/s |
-| 8 | gy | LSM6DS3Sensor | deg/s |
-| 9 | gz | LSM6DS3Sensor | deg/s |
-| 10 | ax | LSM6DS3Sensor | m/s² |
-| 11 | ay | LSM6DS3Sensor | m/s² |
-| 12 | az | LSM6DS3Sensor | m/s² |
-| 13 | vz | BMP585Sensor | m/s |
-| 14 | maxAltitude | BMP585Sensor | m |
-| 15 | state | FlightStateMachine | enum (0-3) |
-| 16 | alt | GPSModule | m |
-| 17 | lat | GPSModule | deg |
-| 18 | lon | GPSModule | deg |
-| 19 | sat | GPSModule | count |
-| 20 | packetQuality | flight computer | uint8 |
-| 21 | rssi | LoRa | dBm |
-
-**Nota:** Este formato pode ser reduzido para manter 19-20 campos (compatibilidade com receiver atual) ou expandido para 21+ campos (v2.0 completo). A definiça depende do receiver.
+**Arquivos alterados:**
+- `firmware/config.h` — frequência 915E6 + SF/BW/CR/TX_POWER
+- `firmware/modules/lora_module.h` — `setupLoRa()` aplica os parâmetros + CRC
+- `firmware/flight/TelemetryTask.cpp` — `assembleTelemetry` reordenado (22 campos)
+- `recovery-webui/.../firmware/src/main.cpp` — `parseSatellitePacket` 22 campos + `buildProtocolPacket`
+- `recovery-webui/.../firmware/include/payload.h` — protocolo 24 campos (v2.0)
+- `recovery-webui/.../firmware/arduino/receiver-lora/receiver-lora.ino` — mirror legado alinhado
 
 **Referências:**
-- `recovery-webui/components/receiver-lora/firmware/Receiver/src/main.cpp` -- Parser CSV do receiver
-- `docs/software.md` -- Arquitetura do software
-- `firmware/REFACTORING_PLAN.md` -- Plano de refatoração
+- `docs/telemetry-format.md` — formato v2.0 (fonte única)
+- `recovery-webui/components/receiver-lora/firmware/src/main.cpp` — Parser CSV do receiver
+- `extras/validate_telemetry_format.py` — validação E2E do formato
 
 ### Checklist de Funcionalidades
 

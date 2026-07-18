@@ -47,9 +47,14 @@ String buildDataFilePath() {
 
 /**
  * @brief Monta a linha CSV de telemetria (Serial file + LoRa)
- * @note Formato provisorio — Fase 10 alinha o formato final com o parser
- *       do Receiver. O ultimo campo ("pqd" no header) e' parachute_deployed,
- *       nao packetQuality; rssi/packetQuality reais ainda nao sao emitidos.
+ * @note Formato v2.0 (Fase 10) — alinhado ao parser do receiver
+ *       (recovery-webui/components/receiver-lora). Ordem canônica de 22
+ *       campos:
+ *       TEAM_ID,millis,count,altp,temp,umi,p,gx,gy,gz,ax,ay,az,vz,
+ *       maxAltitude,state,alt,lat,lon,sat,parachute,rssi
+ *       - "umi" (umidade) e' 0 fixo: ainda nao ha sensor de umidade.
+ *       - "rssi" e' placeholder 0 aqui; o receiver SOBRESCREVE com o
+ *         RSSI real medido no link descendente (LoRa.packetRssi()).
  * @note Monta em um buffer fixo via snprintf (uma unica conversao para
  *       String no retorno) em vez de ~20 concatenacoes com `+`, que a 5Hz
  *       fragmentavam o heap em voos longos (>20min) ate causar OOM.
@@ -71,14 +76,16 @@ String assembleTelemetry(const SensorData& data) {
 
   char buf[256];
   snprintf(buf, sizeof(buf),
-           "%s,%lu,%u,%.2f,%.2f,0,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,"
-           "%d,%s,%s,%s,%u,%d",
+           "%s,%lu,%u,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,"
+           "%.2f,%.2f,%d,%s,%s,%s,%u,%d,%d",
            TEAM_ID, data.timestamp, data.packet_count, data.altitude,
-           data.temperature,  // "0" fixo = umi, sem sensor de umidade ainda
+           data.temperature,
+           0.0f,  // umi: sem sensor de umidade ainda (placeholder 0)
            data.pressure, data.gyroX, data.gyroY, data.gyroZ, data.accelX,
            data.accelY, data.accelZ, data.verticalVelocity, data.maxAltitude,
            static_cast<int>(data.state), gpsAltBuf, latBuf, lonBuf,
-           data.satellites, data.parachute_deployed ? 1 : 0);
+           data.satellites, data.parachute_deployed ? 1 : 0,
+           0);  // rssi: placeholder; receiver substitui por rxRssi real
 
   return String(buf);
 }
@@ -127,7 +134,7 @@ bool initTelemetryTask() {
 
   const String header =
       "TEAM_ID,millis,count,altp,temp,umi,p,gx,gy,gz,ax,ay,az,vz,"
-      "maxAltitude,state,alt,lat,lon,sat,pqd";
+      "maxAltitude,state,alt,lat,lon,sat,parachute,rssi";
   if (!writeFile(file_dir, header)) {
     Serial.println("[Telemetry] FATAL: failed to write CSV header");
     return false;

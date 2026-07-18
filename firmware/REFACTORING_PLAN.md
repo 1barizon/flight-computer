@@ -588,113 +588,144 @@ public:
 
 ---
 
-### FASE 6: FSM - Máquina de Estados (4 estados) ⏱️ 4h
+### FASE 6: FSM - Máquina de Estados ⏱️ 4h
 
-**Status:** ✅ **COMPLETA (PR #16)**
+**Status:** ✅ **COMPLETA (PR #16)** — atualizada para refletir a implementação real
 
-**⚠️ ATENÇÃO: Esta é a fase mais crítica - adaptação da lógica validada para 4 estados**
+**⚠️ ATENÇÃO: Esta é a fase mais crítica - adaptação da lógica validada para 4 estados exteriores + sub-eventos**
 
-**Objetivos:**
-- [ ] Implementar FSM com **4 estados** (IDLE → ASCENT → DESCENT → LANDED)
-- [ ] Adaptar a lógica validada do `FSM_Tester.py` para o modelo simplificado
-- [ ] Implementar validações de segurança obrigatórias (NaN/Inf, guards mínimos)
-- [ ] Testar transições com dados simulados
+**Objetivos (atendidos):**
+- [x] Implementar FSM com **4 estados exteriores** (IDLE → ASCENT → DESCENT → LANDED)
+- [x] Rastrear **7 sub-eventos** via flags booleanas (liftoff, burnout, apogee, freefall, parachute, + ASCENT/DESCENT)
+- [x] Adaptar a lógica validada do `FSM_Tester.py` para o modelo simplificado
+- [x] Implementar validações de segurança obrigatórias (NaN/Inf, guards mínimos)
+- [x] Deploy de paraquedas no **apogeu** (Option A), não no DESCENT — ver `detectParachute()`
+- [x] Testar transições com dados simulados e reais (RocketPy + voo real)
 
 **Arquivos:** `flight/FlightStateMachine.h` + `flight/FlightStateMachine.cpp`
 
-**Estrutura:**
+**Estrutura (fiel à implementação):**
 ```cpp
-class FlightStateMachine {
+class FlightStateMachine : public ISensor {
 private:
   FlightState currentState;
-  
   BMP585Sensor* baro;
   LSM6DS3Sensor* imu;
-  
-  // Contadores de debounce/confirmação
-  uint8_t ascentCounter;
-  
-  void checkTransitions();
-  void transitionTo(FlightState newState);
-  
-  // Funções de detecção (adaptadas para 4 estados)
-  bool detectAscent();
-  bool detectDescent();
-  bool detectLanded();
+
+  // Sub-event flags (set once, cleared on reset)
+  bool _liftoffDetected, _burnoutDetected, _apogeeDetected,
+       _freefallDetected, _parachuteDeployed;
+
+  // Parachute deploy confirmation (Option A: apogee + stable negative Vz)
+  uint8_t _parachuteConfirmCount;
+
+  // IIR filter state for accelerometer (ALPHA=0.2)
+  float _filtAx, _filtAy, _filtAz;
+  bool  _firstReading;
+
+  uint32_t _stateEnteredAt;  // millis() — timeout guard
+
+  void transitionTo(FlightState next);
+
+  // Detection helpers (exact port from test/FSM/FSM.ino)
+  bool detectLiftoff(float ax, float ay, float az) const;
+  bool detectBurnout(float ax, float ay, float az, float height, float vz) const;
+  bool detectApogee(float vz, float az) const;
+  bool detectFreefall(float vz, float height, float totalAcc) const;
+  bool detectParachute(float height, float vz) const;  // Option A: apogee
+  bool detectLanded(float vz, float height) const;
+
+  float smoothFilter(float value, float prev) const;
+  static float totalAccel(float ax, float ay, float az);
 
 public:
   FlightStateMachine(BMP585Sensor* b, LSM6DS3Sensor* i);
-  
-  void begin();
-  void update();
+  bool begin() override;
+  void update() override;
   FlightState getState() const;
   const char* getStateName() const;
+  void reset();
 };
 ```
 
-**Implementação das Funções de Detecção (Referência Simplificada):**
-
-**`detectAscent()` - exemplo simplificado:**
+**Detecção de liftoff (one-shot + IIR, port fiel do teste validado):**
 ```cpp
-bool FlightStateMachine::detectAscent() {
-  float totalAccel = imu->getTotalAccel();
-  if (!std::isfinite(totalAccel)) {
-    return false;
-  }
+bool FlightStateMachine::detectLiftoff(float ax, float ay, float az) const {
+  float total = totalAccel(ax, ay, az);
+  if (!std::isfinite(total)) return false;
+  // IIR smoothing (ALPHA=0.2) + one-shot: sobe para ASCENT uma vez
+  return (total > LIFTOFF_TOTAL_ACCEL_THRESHOLD);
+}
+```
 
-  if (totalAccel > LIFTOFF_TOTAL_ACCEL_THRESHOLD) {
-    ascentCounter++;
-    if (ascentCounter >= 3) {
-      return true;
-    }
-  } else {
-    ascentCounter = 0;
+**Detecção de apogeu / deploy de paraquedas (Option A — NÃO é "vz < 0"):**
+```cpp
+bool FlightStateMachine::detectParachute(float height, float vz) const {
+  // Abre no APOGEU: Vz negativo confirmado por PARACHUTE_CONFIRM_CYCLES
+  // ciclos, e nunca abaixo de PARACHUTE_MIN_ALTITUDE (piso de solo).
+  if (height < PARACHUTE_MIN_ALTITUDE) return false;   // 50 m
+  if (vz < PARACHUTE_CONFIRM_VZ) {                     // -2.0 m/s
+    // contador incrementado em update(); deploy quando >= PARACHUTE_CONFIRM_CYCLES
+    return (_parachuteConfirmCount >= PARACHUTE_CONFIRM_CYCLES);
   }
-
   return false;
 }
 ```
+> O modelo antigo desta seção usava `detectDescent()` com `vz < 0` e deploy no
+> estado DESCENT. Isso foi substituído pela **Option A** (deploy no apogeu),
+> validada com RocketPy (apogeu 951 m → deploy 949.5 m) e voo real
+> (apogeu 272 m → deploy 268 m). Ver commits da Fase 9/Option A.
+```
 
-**`detectDescent()` - exemplo simplificado:**
+**Lógica de Transições (4 estados exteriores + sub-eventos):**
+
+| De | Para | Gatilho (sub-evento) |
+|----|------|--------|
+| IDLE | ASCENT | `detectLiftoff()` (totalAccel > limiar, one-shot) |
+| ASCENT | DESCENT | `detectApogee()` (Vz cruza zero / pico) — seta flag `apogee` |
+| DESCENT | LANDED | `detectLanded()` (Vz~0 e altura estável por guard) |
+
+Sub-eventos rastreados por flags (não mudam o estado exterior, só diagnóstico):
+`liftoff`, `burnout` (fim de empuxo), `apogee`, `freefall`, `parachute`.
+
+**Deploy de paraquedas (Option A — no APOGEU, não no DESCENT):**
+O deploy é acionado pela FlightControlTask quando `detectParachute()` confirma
+apogeu + Vz negativo estável (contador `PARACHUTE_CONFIRM_CYCLES`), respeitando
+o piso `PARACHUTE_MIN_ALTITUDE` (50 m, só guarda de solo). O estado vai para
+PARACHUTE após o acionamento.
+
+**Loop Principal (`update()`):**
 ```cpp
-bool FlightStateMachine::detectDescent() {
-  float vz = baro->getVerticalVelocity();
-  if (!std::isfinite(vz)) {
-    return false;
-  }
-
-  return (vz < 0.0f);
+void FlightStateMachine::update() {
+  if (!_ready) return;
+  // lê sensores, aplica IIR, roda detect* na ordem dos sub-eventos
+  // transitionTo() nos limiares; detectParachute() incrementa o contador
+  // e sinaliza deploy (FlightControlTask efetua ParachuteServo.write)
 }
 ```
-  
-```
 
-**Lógica de Transições (4 estados):**
-
-| De | Para | Função |
-|----|------|--------|
-| IDLE | ASCENT | `detectAscent()` |
-| ASCENT | DESCENT | `detectDescent()` |
-| DESCENT | LANDED | `detectLanded()` |
-
-**Loop Principal (`checkTransitions()`):**
+**Loop Principal (`checkTransitions()` — port fiel da implementação):**
 ```cpp
 void FlightStateMachine::checkTransitions() {
   switch (currentState) {
     case IDLE:
-      if (detectAscent()) {
+      if (detectLiftoff(_filtAx, _filtAy, _filtAz)) {
+        _liftoffDetected = true;
         transitionTo(ASCENT);
       }
       break;
 
     case ASCENT:
-      if (detectDescent()) {
-        transitionTo(DESCENT);
+      if (detectApogee(_vz, _az)) {
+        _apogeeDetected = true;
+        transitionTo(DESCENT);   // apogeu = topo
       }
       break;
 
     case DESCENT:
-      if (detectLanded()) {
+      // detectParachute() (Option A) é consultado pela FlightControlTask;
+      // aqui apenas transições de estado:
+      if (detectLanded(_vz, _height)) {
         transitionTo(LANDED);
       }
       break;
@@ -705,6 +736,7 @@ void FlightStateMachine::checkTransitions() {
   }
 }
 ```
+
 
 **Validação:**
 - [ ] Todas as 3 transições funcionam (IDLE→ASCENT→DESCENT→LANDED)

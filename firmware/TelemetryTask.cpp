@@ -123,9 +123,8 @@ bool initTelemetryTask() {
   }
   g_gps->update();  // Non-blocking best-effort read before building the filename
 
-  if (!setupLittleFS()) {
-    Serial.println("[Telemetry] FATAL: LittleFS mount failed");
-    return false;
+  if (!setupStorage()) {
+    Serial.println("[Telemetry] WARNING: No storage available — continuing without file logging");
   }
 
   file_dir = buildDataFilePath();
@@ -135,10 +134,13 @@ bool initTelemetryTask() {
   const String header =
       "TEAM_ID,millis,count,altp,temp,umi,p,gx,gy,gz,ax,ay,az,vz,"
       "maxAltitude,state,alt,lat,lon,sat,parachute,rssi";
-  if (!writeFile(file_dir, header)) {
+  if (isStorageReady() && !writeFile(file_dir, header)) {
     Serial.println("[Telemetry] FATAL: failed to write CSV header");
     return false;
   }
+
+  Serial.print("[Telemetry] Storage: ");
+  Serial.println(getStorageName());
 
   if (!setupLoRa()) {
     Serial.println("[Telemetry] WARNING: LoRa init failed — continuing without radio");

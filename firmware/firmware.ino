@@ -2,7 +2,7 @@
  * @file firmware.ino
  * @brief Main firmware entry point for #11 Flight Computer (Avionics System)
  * 
- * This is the main program file for a rocket/drone flight computer that handles
+ * This is the main program file for a rocket flight computer that handles
  * sensor data collection, parachute deployment, telemetry transmission, and
  * data storage. The system uses a modular architecture with separate header files
  * for each subsystem.
@@ -36,7 +36,7 @@
 // LIBRARY INCLUDES
 //==============================================================================
 
-#include <Wire.h>    // I2C communication for BMP280 and MPU6050
+#include <Wire.h>    // I2C communication for BMP585 and LSM6DS3
 #include <SPI.h>     // SPI communication for LoRa module
 
 //==============================================================================
@@ -77,25 +77,43 @@
  * @note Serial monitor must be set to 115200 baud
  * @note The watchdog (TWDT) is armed inside taskFlightControl once it is
  *       actually running, not here, to avoid a dangling armed watchdog.
+ *
+ * On any critical init failure the system prints the error, flushes Serial,
+ * and enters an infinite loop with the buzzer blinking — it does NOT call
+ * ESP.restart() to avoid losing state in flight.
  * 
  * @see setup() is called automatically once by Arduino framework
  */
 void setup() {
   Serial.begin(115200);
-  Wire.begin();
+  Wire.begin(I2C_SDA, I2C_SCL);
   pinMode(BUZZER_PIN, OUTPUT);
 
+  bool initOk = true;
+  String initFail = "";
+
   if (!initFlightControlTask()) {
-    Serial.println("FATAL: FlightControl init failed");
-    ESP.restart();
+    initFail = "FATAL: FlightControl init failed (sensors/servo?)";
+    initOk = false;
+  } else if (!initTelemetryTask()) {
+    initFail = "FATAL: Telemetry init failed (LoRa/FS/GPS?)";
+    initOk = false;
+  } else if (!initLoggerTask()) {
+    initFail = "FATAL: Logger init failed";
+    initOk = false;
   }
-  if (!initTelemetryTask()) {
-    Serial.println("FATAL: Telemetry init failed");
-    ESP.restart();
-  }
-  if (!initLoggerTask()) {
-    Serial.println("FATAL: Logger init failed");
-    ESP.restart();
+
+  if (!initOk) {
+    // Safe-hold: do NOT reboot in a loop (would lose state in flight and
+    // hides the error). Print clearly, flush, and blink the buzzer as alarm.
+    Serial.println(initFail);
+    Serial.flush();
+    Serial.println("Halting — check wiring/sensors. Buzzer alarm active.");
+    Serial.flush();
+    for (;;) {
+      digitalWrite(BUZZER_PIN, (millis() / 500) % 2);
+      delay(500);
+    }
   }
 }
 

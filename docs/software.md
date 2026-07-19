@@ -54,7 +54,7 @@ graph TB
     FC -->|xQueueSend| LOGQUEUE
     LOG -->|xQueueReceive| LOGQUEUE
 
-    TEL -->|Serial + LoRa + LittleFS| OUT[(Telemetry sinks)]
+    TEL -->|Serial + LoRa + storage (SD/LittleFS)| OUT[(Telemetry sinks)]
 
     style FC fill:#f96,stroke:#333,stroke-width:2px
     style TEL fill:#9cf,stroke:#333,stroke-width:2px
@@ -82,7 +82,7 @@ firmware/
 │   ├── parachute_module.h      # ParachuteServo + setupServo() (servo owner)
 │   ├── lora_module.h           # setupLoRa() / sendLoRa() (915 MHz)
 │   ├── buzzer_module.h         # Status buzzer
-│   └── filesystem_module.h     # LittleFS (writeFile/appendFile)
+│   └── filesystem_module.h     # Storage SD + LittleFS fallback (setupStorage)
 ├── flight/                     # Flight logic — headers
 │   ├── SensorData.h            # SensorData struct + FlightState enum
 │   ├── FlightStateMachine.h    # FSM (4 states + 7 sub-events)
@@ -134,7 +134,7 @@ firmware/
 | Task | Core | Rate | Priority | Responsibility |
 |------|------|------|----------|----------------|
 | `taskFlightControl` | 1 | 50 Hz | 20 | Update sensors + FSM, deploy parachute at apogee, push `SensorData` to `sensorDataQueue`, feed TWDT |
-| `taskTelemetry` | 0 | 5 Hz | 5 | Drain `sensorDataQueue` (newest sample), enrich with GPS, assemble CSV v2.0, fan-out to Serial + LoRa + LittleFS |
+| `taskTelemetry` | 0 | 5 Hz | 5 | Drain `sensorDataQueue` (newest sample), enrich with GPS, assemble CSV v2.0, fan-out to Serial + LoRa + storage (SD/LittleFS) |
 | `taskLogger` | 0 | event | 1 | Consume `logQueue`, print to Serial (level filter) |
 
 Queues (defined in `config.h`):
@@ -163,13 +163,22 @@ The v2.0 telemetry format is defined in [`docs/telemetry-format.md`](telemetry-f
   `TEAM_ID,millis,count,altp,temp,umi,p,gx,gy,gz,ax,ay,az,vz,maxAltitude,state,alt,lat,lon,sat,parachute,rssi`
 - **Receiver → WebUI**: 24-field CSV (inserts local GPS `hora`/`data` + real `rssi`).
 - **Radio**: 915 MHz, SYNC 0xF3, SF7, BW 125 kHz, CR 4/5, TX +17 dBm, CRC on.
-- **Local storage (LittleFS)**: same 22-field CSV header as the transmitted line.
+- **Local storage (SD card, LittleFS fallback)**: same 22-field CSV header as the transmitted line.
 
-## Storage (LittleFS)
+## Storage (SD card with LittleFS fallback)
+
+`filesystem_module.h` provides a transparent storage abstraction:
+
+- `setupStorage()` — tries the **SD card** (SPI, `SD_CS_PIN`) first; on failure
+  falls back to **LittleFS** (internal flash, auto-format). If both fail,
+  telemetry continues without file logging (the system does not halt).
+- `writeFile()` / `appendFile()` — dispatch to whichever backend is active
+  (`g_storage_type`), so application code never picks a backend explicitly.
+- Helpers: `getStorageName()`, `isStorageReady()`.
 
 - **Format**: CSV (22-field telemetry header, see `docs/telemetry-format.md`).
 - **File name**: `HH_MM_SS-Dados.csv` (GPS time) or `{millis}-Dados.csv` if no fix.
-- **Functions**: `setupLittleFS()`, `writeFile()`, `appendFile()`
+- **Functions**: `setupStorage()`, `writeFile()`, `appendFile()`
   (`filesystem_module.h`).
 
 ## Communication
@@ -232,6 +241,6 @@ Hardware tests in [`test/`](../test/):
 
 - **Safety**: parachute uses apogee + confirmed negative Vz; ground guard only.
 - **Determinism**: FlightControlTask feeds the TWDT; telemetry is best-effort.
-- **Logging**: all telemetry stored locally (LittleFS) before/with transmission.
+- **Logging**: all telemetry stored locally (SD card, LittleFS fallback) before/with transmission.
 - All code comments in English; UI strings in English; telemetry keys per
   firmware convention.

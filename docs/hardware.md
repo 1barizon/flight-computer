@@ -9,8 +9,8 @@ compatibility for the SR21000 rocket.
 
 > **Note — prototype vs target**: the early dev firmware ran on an
 > ESP32-C3 SuperMini; the v2.0 design (schematic `hardware/electronics/...`)
-> uses the ESP32-S3. The pin assignments in `firmware/config.h` still reflect
-> the C3 SuperMini and must be re-mapped when building for the S3.
+> uses the ESP32-S3. The pin assignments in `firmware/config.h` now target the
+> S3. Re-map if migrating between boards.
 
 ## Main Platform
 
@@ -25,22 +25,22 @@ compatibility for the SR21000 rocket.
 - **Wireless**: WiFi 802.11b/g/n + Bluetooth 5 (LE)
 - **Size**: ESP32-S3-DevKitC-1 form factor
 
-**Used Pins** (from `firmware/config.h`; C3-SuperMini assignment shown —
-**re-map for the S3 DevKit before fabrication**):
+**Used Pins** (from `firmware/config.h`):
 
 ```
-Pin 0   → BUZZER_PIN
-Pin 1   → RST_LORA (LoRa Reset)
-Pin 2   → DIO0_LORA (LoRa Interrupt / TX-RX done)
-Pin 3   → SERVO_PIN (Parachute servo PWM)
-Pin 7   → SS_LORA (LoRa Chip Select, SPI)
-Pin 20  → RX_GPS (Serial 1 RX, GPS TX)
-Pin 21  → TX_GPS (Serial 1 TX, GPS RX)
-Pin 8   → SDA (I2C - BMP585, LSM6DS3)   [from config.h; verify vs S3 DevKit]
-Pin 9   → SCL (I2C - BMP585, LSM6DS3)   [from config.h; verify vs S3 DevKit]
-Pin 6   → MOSI (SPI - LoRa)
-Pin 8   → MISO (SPI - LoRa)
-Pin 9   → CLK (SPI - LoRa)
+GPIO 4  → LORA_SCK   (LoRa SPI Clock)
+GPIO 2  → LORA_MISO  (LoRa SPI MISO)
+GPIO 3  → LORA_MOSI  (LoRa SPI MOSI)
+GPIO 5  → SS_LORA    (LoRa Chip Select)
+GPIO 6  → RST_LORA   (LoRa Reset)
+GPIO 7  → DIO0_LORA  (LoRa Interrupt / TX-RX done)
+GPIO 8  → I2C_SDA    (BMP585 + LSM6DS3)
+GPIO 9  → I2C_SCL    (BMP585 + LSM6DS3)
+GPIO 10 → SERVO_PIN  (Parachute servo PWM)
+GPIO 11 → BUZZER_PIN
+GPIO 12 → SD_CS_PIN  (SD Card Chip Select)
+GPIO 20 → RX_GPS     (UART RX — GPS TX)
+GPIO 21 → TX_GPS     (UART TX — GPS RX)
 ```
 
 > **Module variant (N8R8 vs N8R2) — verify**: the schematic symbol
@@ -158,20 +158,45 @@ Pin 9   → CLK (SPI - LoRa)
 - Coding Rate: 4/5
 - CRC: enabled
 
+**Pinout** (matches `config.h` — SPI bus is remapped via `SPI.begin(4,2,3,5)` in `setupLoRa()`):
+
+| Pin | Function | Connection |
+|-----|----------|---------------|
+| VCC | Power | 3.3V |
+| GND | Ground | GND |
+| SCK | SPI Clock | GPIO 4 (LORA_SCK) |
+| MOSI| SPI Data | GPIO 3 (LORA_MOSI) |
+| MISO| SPI Data | GPIO 2 (LORA_MISO) |
+| NSS | SPI CS | GPIO 5 (SS_LORA) |
+| NRST| Reset | GPIO 6 (RST_LORA) |
+| DIO0| TX/RX Int| GPIO 7 (DIO0_LORA) |
+
+**Assembly**: Breakout direct solder on PCB.
+
+### 5. MicroSD Card — Data Logging
+
+**Function**: Primary flight-data storage. The firmware writes the 22-field
+CSV telemetry log here; if the card is absent or fails to mount, logging
+automatically falls back to LittleFS (internal flash).
+
+**Interface**: SPI (shares the same SCK/MOSI/MISO bus as the RFM95W, with an
+independent chip-select line).
+
 **Pinout**:
 
 | Pin | Function | Connection |
 |-----|----------|---------------|
 | VCC | Power | 3.3V |
 | GND | Ground | GND |
-| MOSI| SPI Data | GPIO 6 |
-| MISO| SPI Data | GPIO 8 |
-| CLK | SPI Clock| GPIO 9 |
-| NSS | SPI CS | GPIO 7 (SS_LORA) |
-| NRST| Reset | GPIO 1 (RST_LORA) |
-| DIO0| TX/RX Int| GPIO 2 (DIO0_LORA) |
+| SCK | SPI Clock | GPIO 4 (shared with LoRa) |
+| MOSI| SPI Data | GPIO 3 (shared with LoRa) |
+| MISO| SPI Data | GPIO 2 (shared with LoRa) |
+| CS  | SPI CS | GPIO 12 (SD_CS_PIN) |
 
-**Assembly**: Breakout direct solder on PCB.
+**Note**: Because SD and LoRa share one SPI bus, `setupStorage()` (SD probe)
+runs *before* `setupLoRa()` inside `initTelemetryTask()`, and both backends
+use the same `SPI` object remapped to GPIO 4/3/2. A card present at boot is
+preferred; LittleFS is the safety net.
 
 ## Actuators
 
@@ -192,7 +217,7 @@ Pin 9   → CLK (SPI - LoRa)
 |------|----------|
 | Brown | Ground |
 | Red | +5V |
-| Yellow/Orange | PWM Signal (GPIO 3, SERVO_PIN) |
+| Yellow/Orange | PWM Signal (GPIO 10, SERVO_PIN) |
 
 **Positions** (see `parachute_module.h`):
 
@@ -213,7 +238,7 @@ Pin 9   → CLK (SPI - LoRa)
 **Pinout**:
 
 - Positive → 5V (via current-limiting resistor)
-- Negative → GPIO 0 (BUZZER_PIN)
+- Negative → GPIO 11 (BUZZER_PIN)
 
 **Signals**:
 
@@ -276,6 +301,7 @@ See [CDB_bom.md](../hardware/CDB_bom.md) for the complete list.
 | M3 | LM2596 | 1 | Voltage regulator |
 | M4 | NEO-8M | 1 | GPS |
 | RFM95W1 | RFM95W LoRa | 1 | Wireless telemetry |
+| SD1 | MicroSD card module | 1 | Flight-data logging (SPI, GPIO 12 CS) |
 | J1 | 5V Buzzer | 1 | Signaling |
 | J2 | Servo motor | 1 | Parachute control |
 
@@ -308,7 +334,7 @@ See [CDB_bom.md](../hardware/CDB_bom.md) for the complete list.
 │    └──────────────┘    └───────────┘    └───────────┘      │
 │  ┌──────────────────────────────────────────────────────┐  │
 │  │          LM2596 DC-DC Converter                      │  │
-│  │  Input: 7.4V (2x18650)  →  Output: 3.3V and 5V     │  │
+│  │  Input: 3.7V (3x18650 parallel)  →  Output: 3.3V and 5V  │  │
 │  └──────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────┘
 ```

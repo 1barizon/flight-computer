@@ -25,6 +25,7 @@
 #define LORA_MODULE_H
 
 #include <Arduino.h>
+#include <SPI.h>
 #include <LoRa.h>
 #include "config.h"
 
@@ -57,6 +58,11 @@
  */
 inline bool setupLoRa()
 {
+  // Remap the SPI bus to the RFM95W wiring (same as receiver-lora firmware).
+  // The LoRa 0.8.0 lib uses the global SPI object, so we must call SPI.begin()
+  // with the custom pins BEFORE LoRa.setPins().
+  SPI.begin(LORA_SCK, LORA_MISO, LORA_MOSI, SS_LORA);
+
   // Configure SPI pins for LoRa module
   LoRa.setPins(SS_LORA, RST_LORA, DIO0_LORA);
   

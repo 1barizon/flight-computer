@@ -1,81 +1,113 @@
-# Avionics - Onboard Computer
+# Avionics — Onboard Computer
 
-> **V2 Flight Computer** for Serra Rocketry (#11).
+> **v2.0 Flight Computer** for Serra Rocketry (#11).
 >
-> The previous V1 architecture (LASC 2025) has reached End of Life and is
-> preserved via tagged release.
+> OOP + FreeRTOS + 4-state FSM, validated against real flight data.
+> Built for the ESP32-S3 (ESP32-C3 SuperMini used for legacy prototype).
 
-## What it does
+## Overview
 
 Real-time avionics firmware for a sounding rocket. Runs on an **ESP32-S3**
-(the v2.0 target platform; the ESP32-C3 SuperMini was used for the prototype
-firmware) under FreeRTOS, and is responsible for:
+under FreeRTOS, reading barometric (BMP585), inertial (LSM6DS3) and GPS
+(NEO-8M) sensors to detect flight events and deploy the parachute at apogee.
 
-- Reading altitude (BMP585), IMU (LSM6DS3) and GPS (NEO-8M)
-- Running a flight state machine (liftoff → burnout → apogee → freefall →
-  parachute → landed)
-- Deploying the parachute at **apogee** (validated against RocketPy + real
-  flight data)
-- Transmitting telemetry over **LoRa 915 MHz** to the ground receiver
-  (`recovery-webui/components/receiver-lora`)
-- Logging telemetry to LittleFS for post-flight recovery
+- **Flight state machine**: IDLE → ASCENT → DESCENT → LANDED, with sub-event
+  flags (liftoff, burnout, apogee, freefall, parachute)
+- **Parachute deployment**: Option A (apogee + stable negative Vz, 3-cycle
+  confirmation, 50 m ground guard) — validated against RocketPy + 1,873
+  real flight data points
+- **Telemetry**: 22-field CSV over LoRa @ 915 MHz to ground receiver
+- **Logging**: SD card (primary) with LittleFS flash fallback
+- **Safety**: NaN/Inf rejection, sensor fallback, TWDT watchdog, multi-condition parachute logic
 
 ## Architecture
 
-| Layer | Path | Description |
-|-------|------|-------------|
-| Sensors | `firmware/sensors/` | OOP `ISensor` implementations (BMP585, LSM6DS3, GPS) |
-| Modules | `firmware/modules/` | Actuators/peripherals (parachute, LoRa, buzzer, filesystem) |
-| Flight | `firmware/flight/` | FreeRTOS tasks + `FlightStateMachine` |
-| Config | `firmware/config.h` | Pins, thresholds, radio parameters |
+```
+firmware/
+├── firmware.ino          # setup()/loop() — orchestrates init*Task()
+├── config.h              # Pins, thresholds, radio parameters
+├── sensors/              # ISensor implementations (BMP585, LSM6DS3, GPS)
+├── flight/               # FreeRTOS tasks + FlightStateMachine
+├── modules/              # Actuators/peripherals (servo, LoRa, buzzer, FS)
+├── MODULOS.md            # Module reference
+└── REFACTORING_PLAN.md   # v2.0 architecture specification
+```
 
-Two FreeRTOS cores:
+Two FreeRTOS cores with queue-based communication:
 
-- **Core 1 (critical)**: `FlightControlTask` @ 50 Hz — sensors, FSM, parachute.
-- **Core 0 (non-critical)**: `TelemetryTask` @ 5 Hz (Serial + LoRa + file) and
-  `LoggerTask` (low priority).
+| Core | Task | Priority | Rate | Responsibility |
+|------|------|----------|------|----------------|
+| **1** | `FlightControlTask` | 20 | 50 Hz | Sensors + FSM + parachute + watchdog |
+| **0** | `TelemetryTask` | 5 | 5 Hz | GPS enrichment + LoRa + file + Serial |
+| **0** | `LoggerTask` | 1 | — | Async log queue with level filter |
 
-See [`docs/software.md`](docs/software.md) and
-[`docs/hardware.md`](docs/hardware.md) for the full specification. The
-telemetry wire format is the single source of truth in
-[`docs/telemetry-format.md`](docs/telemetry-format.md).
+## Quick Start
 
-## Build & Flash
+### Arduino IDE (recommended)
 
-**Arduino IDE** (recommended):
-
-1. Board: `ESP32-C3 Dev Module`
+1. Board: **ESP32-S3 Dev Module** (enable "USB CDC On Boot")
 2. Open `firmware/firmware.ino`
-3. Compile (`Ctrl/Cmd+R`) and upload (`Ctrl/Cmd+U`)
+3. Install libraries: `Adafruit BMP5xx`, `Adafruit LSM6DS3`, `TinyGPS++`,
+   `ESP32Servo`, `LoRa by Sandeep Mistry`
+4. Compile (`Ctrl+R`) and upload (`Ctrl+U`)
 
-**PlatformIO** (alternative):
-
-```bash
-platformio run -e esp32-c3          # build
-platformio run -e esp32-c3 -t upload  # flash
-```
-
-## Validate without hardware
+### PlatformIO (alternative)
 
 ```bash
-python3 extras/FSM_tester/FSM_Tester.py          # FSM against real flight data
-python3 extras/validate_telemetry_format.py      # telemetry v2.0 indices (flight↔receiver)
+platformio run -e esp32-s3                  # build
+platformio run -e esp32-s3 -t upload        # flash
 ```
 
-## Repository layout
+### Validate without hardware
+
+```bash
+python3 extras/FSM_tester/FSM_Tester.py       # FSM against 1,873 real data points
+python3 extras/validate_telemetry_format.py    # 22-field telemetry alignment
+```
+
+## Key Specifications
+
+| Parameter | Value |
+|-----------|-------|
+| FlightControl rate | 50 Hz (20 ms) |
+| Telemetry rate | 5 Hz (200 ms) |
+| Parachute confirm | 3 consecutive Vz < −2 m/s |
+| Ground guard | 50 m AGL |
+| LoRa frequency | 915 MHz (Brazil/Americas ISM) |
+| LoRa config | SF7, BW 125 kHz, CR 4/5, CRC on, +17 dBm |
+| Storage | SD card (SPI) → LittleFS fallback |
+| Sensor queue | 25 slots (∼2.4 KB) |
+| Log queue | 50 slots (∼7.2 KB) |
+
+## Documentation
+
+- [`docs/software.md`](docs/software.md) — Software architecture
+- [`docs/hardware.md`](docs/hardware.md) — Hardware specs, pinout, BOM
+- [`docs/telemetry-format.md`](docs/telemetry-format.md) — Telemetry wire format (single source of truth)
+- [`docs/flowchart.md`](docs/flowchart.md) — FreeRTOS + FSM flow diagram
+- [`firmware/MODULOS.md`](firmware/MODULOS.md) — Module reference
+- [`firmware/REFACTORING_PLAN.md`](firmware/REFACTORING_PLAN.md) — Full v2.0 architecture spec
+- [`AGENTS.md`](AGENTS.md) — AI agent coding guide
+- [`CONTRIBUTING.md`](CONTRIBUTING.md) — How to contribute
+
+## Repository Layout
 
 ```
-firmware/   v2.0 firmware (.ino + OOP modules, tasks, FSM)
-test/       hardware validation sketches (bmp/lora/gps/servo/FSM)
+firmware/   v2.0 firmware (OOP + FreeRTOS + FSM)
+test/       Hardware validation sketches (sensors, servo, FSM)
 docs/       software.md, hardware.md, telemetry-format.md, flowchart.md
-hardware/   KiCad schematic + BOM
-extras/     scripts, FSM tester, format validator
+hardware/   KiCad schematic + PCB + BOM
+extras/     Scripts, FSM tester, format validator
 ```
 
 ## Status
 
-All refactoring phases (1-10) are **complete**. Current work is around
-documentation sync and receiver integration (see open issues).
+All 10 refactoring phases are **complete** — v2.0 is fully implemented and
+documented. See [`CHANGELOG.md`](CHANGELOG.md) for the full release history.
+
+## Team
+
+Serra Rocketry — #11 Avionics
 
 ## License
 

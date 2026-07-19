@@ -90,7 +90,7 @@ struct SensorData {
 
   // === LSM6DS3 IMU ===
   float accelX, accelY, accelZ;   ///< Acceleration in m/s²
-  float gyroX, gyroY, gyroZ;      ///< Angular velocity in °/s
+  float gyroX, gyroY, gyroZ;      ///< Angular velocity in rad/s
   float totalAccel;               ///< Total acceleration magnitude in m/s²
 
   // === GPS (OPTIONAL) ===

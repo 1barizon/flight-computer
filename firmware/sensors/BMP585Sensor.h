@@ -35,20 +35,20 @@ public:
   float getPressure() const;
   float getTemperature() const;
   float getMaxAltitude() const;
-  float getVerticalVelocity() const;  // CRITICAL: Computed via numerical differentiation
+  float getVerticalVelocity() const;
   void checkHighest();
 
 private:
   Adafruit_BMP5xx _bmp;
   bool _ready;
-  float base_pressure;
-  float altitude;
-  float temperature;
-  float pressure;
-  float max_altitude;
-  float prev_altitude;
-  unsigned long prev_time;
-  float vertical_velocity;  // Vz = (altitude_current - altitude_previous) / dt
+  float _basePressure;
+  float _altitude;
+  float _temperature;
+  float _pressure;
+  float _maxAltitude;
+  float _prevAltitude;
+  unsigned long _prevTime;
+  float _verticalVelocity;
 };
 
 #endif // BMP585_SENSOR_H

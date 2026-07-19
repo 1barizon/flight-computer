@@ -3,7 +3,7 @@
 **Projeto:** Flight Computer - #11  
 **Hardware:** ESP32-C3 SuperMini (atual), ESP32-S3-DevKitC-1-N8R8 (v2.0 alvo)  
 **Data Início:** 2026-03-18  
-**Status:** 🚀 Fases 1-5 concluídas, Fase 6 em andamento
+**Status:** 🚀 Fases 1-10 concluídas — v2.0 completa
 
 ---
 
@@ -11,16 +11,19 @@
 
 ### Objetivos
 1. ✅ Refatorar código procedural para **POO seletivo** (sensores apenas)
-2. ⏳ Implementar **FSM** para controle de estados de voo
-3. ⏳ Usar **FreeRTOS** para separar lógica crítica (FSM) de I/O (telemetria)
-4. 🔄 Substituir sensores: **BMP280→BMP585**, **MPU6050→LSM6DS3**, **GPS N6M→N8M**
+2. ✅ Implementar **FSM** para controle de estados de voo
+3. ✅ Usar **FreeRTOS** para separar lógica crítica (FSM) de I/O (telemetria)
+4. ✅ Substituir sensores: **BMP280→BMP585**, **MPU6050→LSM6DS3**, **GPS N6M→N8M**
 5. ✅ Preparar arquitetura para modificações futuras
 
 ### Progresso Atual
-- Fases 1-4 concluídas (sensores e base OOP implementados)
-- Fase 5 concluída (GPSModule)
-- Fase 6 concluída (FSM 4 estados, mergeada via PR #16)
-- Fases 7-9 pendentes (FreeRTOS Tasks, Integração, Adaptação módulos)
+- ✅ Fases 1-4 concluídas (sensores e base OOP implementados)
+- ✅ Fase 5 concluída (GPSModule)
+- ✅ Fase 6 concluída (FSM 4 estados, mergeada via PR #16)
+- ✅ Fase 7 concluída (FreeRTOS Tasks: FlightControl @50Hz, Telemetry @5Hz, Logger)
+- ✅ Fase 8 concluída (Integração firmware.ino com init*Task())
+- ✅ Fase 9 concluída (Módulos adaptados: parachute, lora, filesystem, buzzer)
+- ✅ Fase 10 concluída (Formato de telemetria 22 campos alinhado com receiver)
 
 ### Motivação
 - Código monolítico (584 linhas) chegou ao **EOL**
@@ -257,10 +260,10 @@ QueueHandle_t logQueue;
 | 5 | GPSModule (classe) | 1 h | ✅ Completa |
 | 6 | FSM - Máquina de estados (4 estados) | **4 h** | ✅ Completa (PR #16) |
 | 7 | FreeRTOS Tasks | 4 h | ✅ Completa (Tasks 1, 2 e 3) |
-| 8 | Integração firmware.ino | 2 h | ⏳ Pendente |
-| 9 | Adaptar módulos dependentes | 1.5 h | ⏳ Pendente |
-| 10 | Comunicação com o Receiver | 2 h | ⏳ Pendente |
-| **TOTAL** | | **19.25h** | **44%** |
+| 8 | Integração firmware.ino | 2 h | ✅ Completa |
+| 9 | Adaptar módulos dependentes | 1.5 h | ✅ Completa |
+| 10 | Comunicação com o Receiver | 2 h | ✅ Completa |
+| **TOTAL** | | **19.25h** | **100% 🚀** |
 
 ---
 
@@ -418,12 +421,12 @@ public:
   void checkHighest();
   
 private:
-  Adafruit_BMP5XX bmp;
-  float base_pressure;
-  float max_altitude;
-  float prev_altitude;
-  unsigned long prev_time;
-  float vertical_velocity;  // Vz = (altitude_current - altitude_previous) / dt
+  Adafruit_BMP5XX _bmp;
+  float _basePressure;
+  float _maxAltitude;
+  float _prevAltitude;
+  unsigned long _prevTime;
+  float _verticalVelocity;  // Vz = (altitude_current - altitude_previous) / dt
 };
 ```
 
@@ -438,19 +441,19 @@ private:
 // Em BMP585Sensor::update()
 void BMP585Sensor::update() {
   sensors_event_t temp_event, pressure_event;
-  bmp.getEvent(&pressure_event, &temp_event);
+  _bmp.getEvent(&pressure_event, &temp_event);
   
-  float altitude_current = bmp.readAltitude(base_pressure);
+  float altitude_current = _bmp.readAltitude(_basePressure);
   unsigned long time_current = millis();
   
   // Diferenciação numérica (Python linha 201)
-  float dt = (time_current - prev_time) / 1000.0;  // segundos
+  float dt = (time_current - _prevTime) / 1000.0;  // segundos
   if (dt > 0.001) {  // Evitar divisão por zero
-    vertical_velocity = (altitude_current - prev_altitude) / dt;
-    vertical_velocity = constrain(vertical_velocity, -200.0, 200.0);  // Clipping
+    _verticalVelocity = (altitude_current - _prevAltitude) / dt;
+    _verticalVelocity = constrain(_verticalVelocity, -200.0, 200.0);  // Clipping
     
-    prev_altitude = altitude_current;
-    prev_time = time_current;
+    _prevAltitude = altitude_current;
+    _prevTime = time_current;
   }
 }
 ```
@@ -515,10 +518,10 @@ public:
   float getTotalAccel() const;  // ⚠️ CRÍTICO: sqrt(ax² + ay² + az²)
   
 private:
-  Adafruit_LSM6DS3 lsm;
-  float accelX, accelY, accelZ;
-  float gyroX, gyroY, gyroZ;
-  float total_accel;  // Calculado em update()
+  Adafruit_LSM6DS3 _lsm;
+  float _accelX, _accelY, _accelZ;
+  float _gyroX, _gyroY, _gyroZ;
+  float _totalAccel;  // Calculado em update()
 };
 ```
 
@@ -532,18 +535,18 @@ private:
 // Em LSM6DS3Sensor::update()
 void LSM6DS3Sensor::update() {
   sensors_event_t accel, gyro, temp;
-  lsm.getEvent(&accel, &gyro, &temp);
+  _lsm.getEvent(&accel, &gyro, &temp);
   
-  accelX = accel.acceleration.x;
-  accelY = accel.acceleration.y;
-  accelZ = accel.acceleration.z;
+  _accelX = accel.acceleration.x;
+  _accelY = accel.acceleration.y;
+  _accelZ = accel.acceleration.z;
   
-  gyroX = gyro.gyro.x;
-  gyroY = gyro.gyro.y;
-  gyroZ = gyro.gyro.z;
+  _gyroX = gyro.gyro.x;
+  _gyroY = gyro.gyro.y;
+  _gyroZ = gyro.gyro.z;
   
   // Magnitude total da aceleração (Python linha 37)
-  total_accel = sqrt(accelX*accelX + accelY*accelY + accelZ*accelZ);
+  _totalAccel = sqrt(_accelX*_accelX + _accelY*_accelY + _accelZ*_accelZ);
 }
 ```
 
@@ -623,7 +626,7 @@ private:
   float _filtAx, _filtAy, _filtAz;
   bool  _firstReading;
 
-  uint32_t _stateEnteredAt;  // millis() — timeout guard
+
 
   void transitionTo(FlightState next);
 
@@ -1171,16 +1174,18 @@ satellite / 24 no protocolo do receiver).
 - ✅ 4 estados: IDLE → ASCENT → DESCENT → LANDED
 - ✅ Sub-eventos: liftoff, burnout, apogee, freefall, parachute
 - ✅ Thresholds validados com dados reais (1,873 pontos)
-- ✅ Timeout de stuck states (30s) implementado
 - ✅ Validações NaN/Inf em todas as entradas
 - ✅ Vz corrigido para m/s (divisão por 1000.0F em BMP585Sensor)
 - ✅ IIR filter (alpha=0.2) com seed na primeira leitura
 
 ### Próximas Etapas
-- ⏳ Iniciar Fase 7 (FreeRTOS Tasks)
-- ⏳ Fase 8 (Integração firmware.ino)
-- ⏳ Fase 9 (Adaptar módulos dependentes - remover código legacy)
-- ⏳ Fase 10 (Comunicação com o Receiver - alinhar formato de telemetria)
+- ✅ Fase 7 concluída (FreeRTOS Tasks: FlightControl @50Hz, Telemetry @5Hz, Logger)
+- ✅ Fase 8 concluída (Integração firmware.ino — setup() orquestra init*Task())
+- ✅ Fase 9 concluída (Módulos adaptados: parachute, lora, filesystem, buzzer)
+- ✅ Fase 10 concluída (Formato de telemetria 22 campos alinhado com receiver)
+
+Todas as 10 fases da v2.0 foram concluídas. O firmware está migrado para
+OOP + FreeRTOS + FSM. Consulte `CHANGELOG.md` para o histórico completo.
 
 ---
 
@@ -1231,7 +1236,7 @@ satellite / 24 no protocolo do receiver).
 
 **Última atualização:** 2026-06-24  
 **Versão do documento:** 2.3  
-**Status geral:** 🚀 Fases 1-6 concluídas, Fase 7 pendente
+**Status geral:** 🚀 Todas as 10 fases concluídas — v2.0 operacional
 
 ---
 

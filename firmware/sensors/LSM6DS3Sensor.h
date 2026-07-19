@@ -38,23 +38,23 @@ public:
 
   // Vector accessors (Issue #6 requirement)
   void getAcceleration(float* x, float* y, float* z) const {
-    if (x) *x = accelX;
-    if (y) *y = accelY;
-    if (z) *z = accelZ;
+    if (x) *x = _accelX;
+    if (y) *y = _accelY;
+    if (z) *z = _accelZ;
   }
 
   void getGyroscope(float* x, float* y, float* z) const {
-    if (x) *x = gyroX;
-    if (y) *y = gyroY;
-    if (z) *z = gyroZ;
+    if (x) *x = _gyroX;
+    if (y) *y = _gyroY;
+    if (z) *z = _gyroZ;
   }
 
 private:
-  Adafruit_LSM6DS lsm;
-  bool ready;
-  float accelX, accelY, accelZ;
-  float gyroX, gyroY, gyroZ;
-  float total_accel;  // Computed in update()
+  Adafruit_LSM6DS _lsm;
+  bool _ready;
+  float _accelX, _accelY, _accelZ;
+  float _gyroX, _gyroY, _gyroZ;
+  float _totalAccel;
 };
 
 

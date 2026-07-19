@@ -14,14 +14,14 @@
  * @brief Default constructor - initializes all members to safe values
  */
 LSM6DS3Sensor::LSM6DS3Sensor()
-		: ready(false),
-			accelX(0.0F),
-			accelY(0.0F),
-			accelZ(0.0F),
-			gyroX(0.0F),
-			gyroY(0.0F),
-			gyroZ(0.0F),
-			total_accel(0.0F) {}
+		: _ready(false),
+			_accelX(0.0F),
+			_accelY(0.0F),
+			_accelZ(0.0F),
+			_gyroX(0.0F),
+			_gyroY(0.0F),
+			_gyroZ(0.0F),
+			_totalAccel(0.0F) {}
 
 /**
  * @brief Initializes LSM6DS3 IMU sensor
@@ -32,26 +32,26 @@ LSM6DS3Sensor::LSM6DS3Sensor()
  * @note Blocking: performs initial sensor read
  */
 bool LSM6DS3Sensor::begin() {
-	if (!lsm.begin_I2C()) {
+	if (!_lsm.begin_I2C()) {
 		Serial.println("LSM6DS3 initialization failed.");
-		ready = false;
+		_ready = false;
 		return false;
 	}
 
 	sensors_event_t accel_event;
 	sensors_event_t gyro_event;
 	sensors_event_t temp_event;
-	lsm.getEvent(&accel_event, &gyro_event, &temp_event);
+	_lsm.getEvent(&accel_event, &gyro_event, &temp_event);
 
-	accelX = accel_event.acceleration.x;
-	accelY = accel_event.acceleration.y;
-	accelZ = accel_event.acceleration.z;
-	gyroX = gyro_event.gyro.x;
-	gyroY = gyro_event.gyro.y;
-	gyroZ = gyro_event.gyro.z;
+	_accelX = accel_event.acceleration.x;
+	_accelY = accel_event.acceleration.y;
+	_accelZ = accel_event.acceleration.z;
+	_gyroX = gyro_event.gyro.x;
+	_gyroY = gyro_event.gyro.y;
+	_gyroZ = gyro_event.gyro.z;
 
-	total_accel = std::sqrt(accelX * accelX + accelY * accelY + accelZ * accelZ);
-	ready = true;
+	_totalAccel = std::sqrt(_accelX * _accelX + _accelY * _accelY + _accelZ * _accelZ);
+	_ready = true;
 
 	return true;
 }
@@ -76,7 +76,7 @@ void LSM6DS3Sensor::update() {
 	sensors_event_t accel_event;
 	sensors_event_t gyro_event;
 	sensors_event_t temp_event;
-	lsm.getEvent(&accel_event, &gyro_event, &temp_event);
+	_lsm.getEvent(&accel_event, &gyro_event, &temp_event);
 
 	const float newAccelX = accel_event.acceleration.x;
 	const float newAccelY = accel_event.acceleration.y;
@@ -110,32 +110,30 @@ void LSM6DS3Sensor::update() {
 	}
 
 	// Accept sample after validation passes
-	accelX = newAccelX;
-	accelY = newAccelY;
-	accelZ = newAccelZ;
-	gyroX = newGyroX;
-	gyroY = newGyroY;
-	gyroZ = newGyroZ;
+	_accelX = newAccelX;
+	_accelY = newAccelY;
+	_accelZ = newAccelZ;
+	_gyroX = newGyroX;
+	_gyroY = newGyroY;
+	_gyroZ = newGyroZ;
 
-	total_accel = std::sqrt(accelX * accelX + accelY * accelY + accelZ * accelZ);
+	_totalAccel = std::sqrt(_accelX * _accelX + _accelY * _accelY + _accelZ * _accelZ);
 }
 
 String LSM6DS3Sensor::getData() {
-	return String(accelX) + "," + String(accelY) + "," + String(accelZ) + "," +
-				 String(gyroX) + "," + String(gyroY) + "," + String(gyroZ) + "," +
-				 String(total_accel);
+	return String(_accelX) + "," + String(_accelY) + "," + String(_accelZ) + "," +
+				 String(_gyroX) + "," + String(_gyroY) + "," + String(_gyroZ) + "," +
+				 String(_totalAccel);
 }
 
 bool LSM6DS3Sensor::isReady() {
-	return ready;
+	return _ready;
 }
 
 float LSM6DS3Sensor::getAccelZ() const {
-	return accelZ;
+	return _accelZ;
 }
 
 float LSM6DS3Sensor::getTotalAccel() const {
-	return total_accel;
+	return _totalAccel;
 }
-
-

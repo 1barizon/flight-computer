@@ -8,25 +8,33 @@ refatoração v2.0). Fonte de verdade para módulos e tarefas.
 
 ```
 firmware/
-├── config.h                 # Pinos, thresholds, parâmetros LoRa (constantes)
+├── config.h                 # Pinos, thresholds, parâmetros LoRa/SD (constantes)
 ├── firmware.ino             # setup()/loop() — apenas orquestra as init*Task()
-├── sensors/                 # Abstração de hardware (ISensor)
+├── sensors/                 # Abstração de hardware (ISensor) — headers
 │   ├── ISensor.h            # Interface comum (begin/update/getData/isReady)
-│   ├── BMP585Sensor.h/.cpp  # Barômetro (altitude, pressão, temp, Vz)
-│   ├── LSM6DS3Sensor.h/.cpp # IMU (aceleração + giroscópio)
-│   └── GPSModule.h/.cpp     # GPS (lat/lon/alt/sats, non-blocking NMEA)
-├── modules/                 # Atuadores e periféricos
+│   ├── BMP585Sensor.h       # Barômetro (altitude, pressão, temp, Vz)
+│   ├── LSM6DS3Sensor.h      # IMU (aceleração + giroscópio)
+│   └── GPSModule.h          # GPS (lat/lon/alt/sats, non-blocking NMEA)
+├── modules/                 # Atuadores e periféricos — headers
 │   ├── parachute_module.h   # Dono do servo (ParachuteServo + setupServo)
 │   ├── lora_module.h        # Rádio LoRa (setupLoRa/sendLoRa)
 │   ├── buzzer_module.h      # Buzzer de status
-│   └── filesystem_module.h  # LittleFS (writeFile/appendFile)
-└── flight/                  # Lógica de voo (FreeRTOS tasks + FSM)
-    ├── SensorData.h         # Struct SensorData + enum FlightState
-    ├── FlightStateMachine.h/.cpp  # FSM (4 estados + 7 sub-eventos)
-    ├── FlightControlTask.h/.cpp   # Task 1 — 50Hz (FSM + deploy + queue)
-    ├── TelemetryTask.h/.cpp       # Task 2 — 5Hz (assemble + LoRa + file)
-    └── LoggerTask.h/.cpp          # Task 3 — baixa prioridade (log Serial)
-```
+│   └── filesystem_module.h  # Storage SD + LittleFS fallback (setupStorage)
+├── flight/                  # Lógica de voo — headers
+│   ├── SensorData.h         # Struct SensorData + enum FlightState
+│   ├── FlightStateMachine.h # FSM (4 estados + 7 sub-eventos)
+│   ├── FlightControlTask.h  # Task 1 — 50Hz (FSM + deploy + queue)
+│   ├── TelemetryTask.h      # Task 2 — 5Hz (assemble + LoRa + file)
+│   └── LoggerTask.h         # Task 3 — baixa prioridade (log Serial)
+├── BMP585Sensor.cpp         # impl (raiz — compilada pelo Arduino)
+├── LSM6DS3Sensor.cpp
+├── GPSModule.cpp
+├── FlightStateMachine.cpp
+├── FlightControlTask.cpp
+├── TelemetryTask.cpp
+├── LoggerTask.cpp
+├── parachute_module.cpp
+└── config.cpp
 
 ## sensors/ (camada ISensor)
 
@@ -49,8 +57,10 @@ Todos os sensores implementam `ISensor` (`begin`, `update`, `getData`,
 - **lora_module.h** — `setupLoRa()` aplica 915E6 / SYNC 0xF3 / SF7 / BW125k /
   CR5 / TP17 / CRC, e `sendLoRa(String)`.
 - **buzzer_module.h** — sinais sonoros de status (init/flight/landed).
-- **filesystem_module.h** — `setupLittleFS()`, `writeFile()`, `appendFile()`
-  (LittleFS).
+- **filesystem_module.h** — abstração de storage com fallback:
+  `setupStorage()` tenta SD card (SPI) primeiro; se falhar, usa LittleFS
+  (flash interno). `writeFile()`/`appendFile()` despacham pelo backend ativo
+  (`g_storage_type`). Helpers: `getStorageName()`, `isStorageReady()`.
 
 ## flight/ (lógica de voo)
 
@@ -68,7 +78,9 @@ Todos os sensores implementam `ISensor` (`begin`, `update`, `getData`,
   da própria task.
 - **TelemetryTask** — Task 2 @5Hz (Core 0). Drena `sensorDataQueue` (mantém a
   amostra mais nova), enriquece com GPS, monta CSV v2.0 (`assembleTelemetry`),
-  e faz fan-out para Serial + LoRa + LittleFS.
+  e faz fan-out para Serial + LoRa + storage (SD ou LittleFS via
+  `setupStorage()`). Se nenhum storage estiver disponível, continua sem
+  logging de arquivo (avança mesmo assim).
 - **LoggerTask** — Task 3 (baixa prioridade). Consome `logQueue` e imprime no
   Serial (filtro de `LOG_LEVEL`).
 

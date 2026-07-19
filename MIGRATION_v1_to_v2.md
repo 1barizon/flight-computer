@@ -17,7 +17,7 @@ not just *what* the code looks like now.
 | Parachute | Deploy at `ALTITUDE_THRESHOLD = 750 m` | Deploy at **apogee** (Option A) |
 | Comms | LoRa 868 MHz, ad-hoc CSV | LoRa 915 MHz, v2.0 22-field format |
 | Web UI | ESPAsyncWebServer on board | Removed (receiver provides web UI) |
-| Storage | LittleFS, v1.0 CSV header | LittleFS, 22-field v2.0 CSV |
+| Storage | LittleFS, v1.0 CSV header | SD card (filesystem_module.h `setupStorage`), LittleFS fallback; 22-field v2.0 CSV |
 
 ## Side-by-side: Architecture
 

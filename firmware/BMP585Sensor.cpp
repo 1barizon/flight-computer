@@ -9,9 +9,9 @@
 #include "sensors/BMP585Sensor.h"
 
 BMP585Sensor::BMP585Sensor()
-    : _ready(false), base_pressure(0.0F), altitude(0.0F), temperature(0.0F),
-      pressure(0.0F), max_altitude(0.0F), prev_altitude(0.0F), prev_time(0UL),
-      vertical_velocity(0.0F) {}
+    : _ready(false), _basePressure(0.0F), _altitude(0.0F), _temperature(0.0F),
+      _pressure(0.0F), _maxAltitude(0.0F), _prevAltitude(0.0F), _prevTime(0UL),
+      _verticalVelocity(0.0F) {}
 
 /**
  * @brief Initializes BMP585 sensor and calibrates base pressure
@@ -35,15 +35,15 @@ bool BMP585Sensor::begin() {
     return false;
   }
 
-  pressure = _bmp.pressure / 100.0F;
-  temperature = _bmp.temperature;
-  base_pressure = pressure;
-  altitude = _bmp.readAltitude(base_pressure);
+  _pressure = _bmp.pressure / 100.0F;
+  _temperature = _bmp.temperature;
+  _basePressure = _pressure;
+  _altitude = _bmp.readAltitude(_basePressure);
 
-  prev_altitude = altitude;
-  max_altitude = altitude;
-  prev_time = millis();
-  vertical_velocity = 0.0F;
+  _prevAltitude = _altitude;
+  _maxAltitude = _altitude;
+  _prevTime = millis();
+  _verticalVelocity = 0.0F;
   _ready = true;
 
   return true;
@@ -54,6 +54,8 @@ bool BMP585Sensor::begin() {
  * 
  * Non-blocking sensor read with numerical differentiation for Vz calculation.
  * Vertical velocity is clipped to ±200 m/s to reject noise spikes.
+ * Invalid readings (NaN, out of range) are silently discarded,
+ * preserving the last known good values as fallback.
  * 
  * @return void
  * @note Called by FlightControlTask at 50Hz
@@ -69,15 +71,21 @@ void BMP585Sensor::update() {
   }
 
   const unsigned long current_time = millis();
-  const float current_altitude = _bmp.readAltitude(base_pressure);
+  const float current_altitude = _bmp.readAltitude(_basePressure);
 
-  pressure = _bmp.pressure / 100.0F;
-  temperature = _bmp.temperature;
-  altitude = current_altitude;
+  // Validate reading — fallback to previous values on corruption
+  if (isnan(current_altitude) || current_altitude < -500.0F ||
+      current_altitude > 50000.0F) {
+    return;
+  }
 
-  const float dt = (current_time - prev_time) / 1000.0F;
+  _pressure = _bmp.pressure / 100.0F;
+  _temperature = _bmp.temperature;
+  _altitude = current_altitude;
+
+  const float dt = (current_time - _prevTime) / 1000.0F;
   if (dt > 0.001F) {
-    float vz = (current_altitude - prev_altitude) / dt;
+    float vz = (current_altitude - _prevAltitude) / dt;
 
     if (vz > 200.0F) {
       vz = 200.0F;
@@ -85,33 +93,33 @@ void BMP585Sensor::update() {
       vz = -200.0F;
     }
 
-    vertical_velocity = vz;
-    prev_altitude = current_altitude;
-    prev_time = current_time;
+    _verticalVelocity = vz;
+    _prevAltitude = current_altitude;
+    _prevTime = current_time;
   }
 
   checkHighest();
 }
 
 String BMP585Sensor::getData() {
-  return String(altitude) + "," + String(temperature) + ",nan," +
-         String(pressure);
+  return String(_altitude) + "," + String(_temperature) + ",nan," +
+         String(_pressure);
 }
 
 bool BMP585Sensor::isReady() { return _ready; }
 
-float BMP585Sensor::getAltitude() const { return altitude; }
+float BMP585Sensor::getAltitude() const { return _altitude; }
 
-float BMP585Sensor::getPressure() const { return pressure; }
+float BMP585Sensor::getPressure() const { return _pressure; }
 
-float BMP585Sensor::getTemperature() const { return temperature; }
+float BMP585Sensor::getTemperature() const { return _temperature; }
 
-float BMP585Sensor::getMaxAltitude() const { return max_altitude; }
+float BMP585Sensor::getMaxAltitude() const { return _maxAltitude; }
 
-float BMP585Sensor::getVerticalVelocity() const { return vertical_velocity; }
+float BMP585Sensor::getVerticalVelocity() const { return _verticalVelocity; }
 
 void BMP585Sensor::checkHighest() {
-  if (altitude > max_altitude) {
-    max_altitude = altitude;
+  if (_altitude > _maxAltitude) {
+    _maxAltitude = _altitude;
   }
 }

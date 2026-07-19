@@ -16,17 +16,6 @@
 #include <Arduino.h>
 
 //==============================================================================
-// TIMING AND LOOP CONFIGURATION
-//==============================================================================
-
-/**
- * Main loop execution interval in milliseconds
- * 200ms = ~5Hz sampling rate
- * Adjust this value to increase/decrease data collection rate
- */
-#define INTERVAL 200
-
-//==============================================================================
 // LORA COMMUNICATION CONFIGURATION
 //==============================================================================
 
@@ -38,21 +27,26 @@
 #define LORA_FREQ 915E6
 
 /**
- * Slave Select (SS/CS) pin for SPI communication with LoRa module
+ * Slave Select (SS/CS) pin for SPI communication with LoRa module (RFM95W)
+ * @note The LoRa 0.8.0 library uses the global SPI object. We remap the SPI
+ *       bus to these pins via SPI.begin(SCK, MISO, MOSI, SS) in setupLoRa()
+ *       (same approach as the receiver-lora firmware, which compiles/runs
+ *       clean). Only CS/RST/DIO0 are passed to LoRa.setPins().
  */
-#define SS_LORA 7
+#define LORA_SCK  4
+#define LORA_MISO 2
+#define LORA_MOSI 3
+#define SS_LORA 5
 
 /**
  * Reset pin for LoRa module
- * Used to reinitialize the module in case of issues
  */
-#define RST_LORA 1
+#define RST_LORA 6
 
 /**
- * DIO0 pin of LoRa module
- * Used for interrupts and transmission complete signaling
+ * DIO0 pin of LoRa module (IRQ / interrupt)
  */
-#define DIO0_LORA 2
+#define DIO0_LORA 7
 
 /**
  * Synchronization word for LoRa communication
@@ -71,20 +65,60 @@
 #define LORA_TX_POWER 17     // dBm
 
 //==============================================================================
+// PIN DEFINITIONS - SD CARD (SPI, shares bus with LoRa)
+//==============================================================================
+
+/**
+ * Chip Select pin for SD card module
+ * Shares the SPI bus with LoRa (SCK=4, MISO=2, MOSI=3).
+ * GPIO 12 is free on ESP32-C3 SuperMini (not used by I2C, UART, or LoRa).
+ * @note If SD fails, data is saved to LittleFS (internal flash) automatically.
+ */
+#define SD_CS_PIN 12
+
+/**
+ * Flush file buffer every N samples when using SD card
+ * Balances data safety vs. write endurance.
+ */
+static constexpr uint8_t FLUSH_EVERY_N = 10;
+
+//==============================================================================
 // PIN DEFINITIONS - ACTUATORS
 //==============================================================================
 
 /**
  * Digital pin connected to parachute servo motor
- * Uses PWM to control servo position
+ * Uses PWM to control servo position.
+ * @note GPIO 10 — free on ESP32-S3 (not a strap, not used by SPI/I2C/LoRa/GPS).
+ *       Adjust to match the final schematic.
  */
-#define SERVO_PIN 3
+#define SERVO_PIN 10
 
 /**
  * Digital pin connected to piezoelectric buzzer
- * Emits sound signals for status indication
+ * Emits sound signals for status indication.
+ * @note GPIO 11 — free on ESP32-S3 (not a strap, not used by SPI/I2C/LoRa/GPS).
+ *       Avoid GPIO0 (boot strap). Adjust to match the final schematic.
  */
-#define BUZZER_PIN 0
+#define BUZZER_PIN 11
+
+//==============================================================================
+// PIN DEFINITIONS - I2C (SENSORS: BMP585 barometer, LSM6DS3 IMU)
+//==============================================================================
+
+/**
+ * I2C data pin (SDA) for the sensor bus.
+ * @note ESP32-S3 Arduino core default is SDA=8 / SCL=9. The BMP585 and
+ *       LSM6DS3 drivers call begin_I2C() with no pins, so they use this
+ *       default. Wire.begin() below also uses these. Keep the schematic
+ *       wired to 8/9 (or change both here and the calls).
+ */
+#define I2C_SDA 8
+
+/**
+ * I2C clock pin (SCL) for the sensor bus.
+ */
+#define I2C_SCL 9
 
 //==============================================================================
 // PIN DEFINITIONS - GPS
@@ -117,27 +151,6 @@ const int SERVO_OPEN = 0;
  * Value in degrees: 90° = fully closed
  */
 const int SERVO_CLOSED = 90;
-
-/**
- * Altitude drop threshold in meters
- * Parachute will only deploy after altitude drops this value
- * below the maximum peak reached (detects descent after apogee)
- */
-const float ALTITUDE_DROP_THRESHOLD = 10.0;
-
-/**
- * Minimum altitude for parachute deployment in meters
- * Prevents opening too high (outside recovery zone)
- * Adjust according to competition rules
- */
-const float ALTITUDE_THRESHOLD = 750.0;
-
-/**
- * Minimum descent velocity for parachute deployment in m/s
- * Ensures parachute only opens in free fall
- * Absolute value: 80 m/s ≈ 288 km/h
- */
-const float VELOCITY_THRESHOLD = 80.0;
 
 //==============================================================================
 // TEAM IDENTIFICATION
@@ -184,8 +197,5 @@ static constexpr uint8_t PARACHUTE_CONFIRM_CYCLES = 3;     ///< consecutive cycl
 static constexpr float LANDED_MAX_VZ            =  0.5f;  ///< m/s   |vz| below this
 static constexpr float LANDED_MAX_HEIGHT        =  2.0f;  ///< m     altitude below this
 static constexpr float FILTER_ALPHA             =  0.2f;  ///< IIR low-pass coefficient
-
-static constexpr uint32_t STATE_TIMEOUT_MS      = 30000UL; ///< ms — max time in ASCENT/DESCENT before forced advance
-
 
 #endif // CONFIG_H

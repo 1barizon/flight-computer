@@ -4,9 +4,9 @@ This guide is for AI coding agents working on the Flight Computer project (#11 -
 
 ## Project Context
 
-- **Hardware**: ESP32-C3 SuperMini (current), ESP32-S3 (v2.0 target)
+- **Hardware**: ESP32-S3 (primary), ESP32-C3 SuperMini (legacy prototype)
 - **Language**: C/C++ (Arduino framework)
-- **Architecture**: v1.0 (procedural, EOL), v2.0 (OOP + FreeRTOS + FSM - in planning)
+- **Architecture**: v2.0 (OOP + FreeRTOS + FSM - implemented), v1.0 (procedural, EOL)
 - **Key Docs**: `firmware/REFACTORING_PLAN.md`, `CONTRIBUTING.md`, `docs/software.md`
 
 ---
@@ -16,7 +16,7 @@ This guide is for AI coding agents working on the Flight Computer project (#11 -
 ### Compile Firmware (Arduino IDE)
 ```bash
 # Open firmware/firmware.ino in Arduino IDE
-# Board: ESP32-C3 Dev Module
+# Board: ESP32-S3 Dev Module (primary) or ESP32-C3 Dev Module (legacy)
 # Verify/Compile: Ctrl+R or Sketch → Verify/Compile
 # Upload: Ctrl+U or Sketch → Upload
 ```
@@ -96,8 +96,7 @@ bool detectLiftoff() { }
 const int MAX_ALTITUDE = 50000;
 const float LIFTOFF_THRESHOLD = 15.0;  // m/s²
 
-#define INTERVAL 200  // ms
-#define LORA_FREQ 868E6
+#define LORA_FREQ 915E6
 ```
 
 #### Classes (v2.0)
@@ -135,7 +134,7 @@ private:
 // Includes (Arduino libs first, then third-party)
 #include <Arduino.h>
 #include <Wire.h>
-#include <Adafruit_BMP280.h>
+#include <Adafruit_BMP5xx.h>
 
 // Global variables (documented)
 
@@ -147,7 +146,7 @@ private:
 ### Imports/Includes Order
 1. Arduino core (`<Arduino.h>`)
 2. Standard libraries (`<Wire.h>`, `<SPI.h>`)
-3. Third-party libraries (`<Adafruit_BMP280.h>`)
+3. Third-party libraries (`<Adafruit_BMP5xx.h>`)
 4. Project headers (`"config.h"`)
 
 ### Function Documentation (Doxygen Style)
@@ -268,11 +267,11 @@ if (altitude < 750) {
 }
 
 // ✅ CORRECT: Multi-condition with state validation
-if (state == FREEFALL && 
-    altitude < ALTITUDE_THRESHOLD &&
-    !parachuteDeployed) {
+if (data.parachute_deployed && 
+    !g_parachuteActuated) {
   deployParachute();
-  parachuteDeployed = true;
+  g_parachuteActuated = true;
+  logMessage(TASK_ID_FLIGHT_CONTROL, LOG_LEVEL_WARN, "Parachute deployed");
   Serial.println("🪂 PARACHUTE DEPLOYED");
 }
 ```

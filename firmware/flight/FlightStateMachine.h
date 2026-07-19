@@ -126,8 +126,6 @@ private:
   float    _filtAz;
   bool     _firstReading;
 
-  uint32_t _stateEnteredAt; // millis() when current state was entered — for timeout guard
-
   void transitionTo(FlightState next);
 
   // Detection helpers — exact port from test/FSM/FSM.ino
@@ -138,7 +136,7 @@ private:
   bool detectParachute(float height, float vz) const;
   bool detectLanded(float vz, float height) const;
 
-  float smoothFilter(float value, float prev) const;
+  static float smoothFilter(float value, float prev);
   static float totalAccel(float ax, float ay, float az);
 };
 

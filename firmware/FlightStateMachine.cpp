@@ -38,8 +38,7 @@ FlightStateMachine::FlightStateMachine(BMP585Sensor* baro, LSM6DS3Sensor* imu)
       _filtAx(0.0f),
       _filtAy(0.0f),
       _filtAz(0.0f),
-      _firstReading(true),
-      _stateEnteredAt(0) {}
+      _firstReading(true) {}
 
 bool FlightStateMachine::begin() {
   if (!_baro || !_imu) {
@@ -65,7 +64,6 @@ void FlightStateMachine::reset() {
   _parachuteConfirmCount = 0;
   _filtAx = _filtAy = _filtAz = 0.0f;
   _firstReading = true;
-  _stateEnteredAt = millis();
   Serial.println("[FSM] Reset -> IDLE");
 }
 
@@ -126,11 +124,6 @@ void FlightStateMachine::update() {
         _apogeeDetected = true;
         _parachuteConfirmCount = 0;  // Reset deploy confirmation at apogee
         transitionTo(DESCENT);
-      } else if ((millis() - _stateEnteredAt) >= STATE_TIMEOUT_MS) {
-        Serial.printf("[FSM] TIMEOUT ASCENT (%.0fs) -> forcing DESCENT\n", STATE_TIMEOUT_MS / 1000.0f);
-        _apogeeDetected = true;
-        _parachuteConfirmCount = 0;
-        transitionTo(DESCENT);
       }
       break;
 
@@ -152,9 +145,6 @@ void FlightStateMachine::update() {
         _parachuteConfirmCount = 0;
       }
       if (detectLanded(vz, height)) {
-        transitionTo(LANDED);
-      } else if ((millis() - _stateEnteredAt) >= STATE_TIMEOUT_MS) {
-        Serial.printf("[FSM] TIMEOUT DESCENT (%.0fs) -> forcing LANDED\n", STATE_TIMEOUT_MS / 1000.0f);
         transitionTo(LANDED);
       }
       break;
@@ -198,7 +188,6 @@ bool FlightStateMachine::isParachuteDeployed() const     { return _parachuteDepl
 void FlightStateMachine::transitionTo(FlightState next) {
   Serial.printf("[FSM] %s -> %s\n", getFlightStateName(_state), getFlightStateName(next));
   _state = next;
-  _stateEnteredAt = millis();
 }
 
 // ── Detection functions ───────────────────────────────────────────────────────
@@ -245,7 +234,7 @@ bool FlightStateMachine::detectLanded(float vz, float height) const {
 // ── Filter / math helpers ────────────────────────────────────────────────────
 
 // test/FSM/FSM.ino lines 80-83  (exponential moving average, alpha=0.2)
-float FlightStateMachine::smoothFilter(float value, float prev) const {
+float FlightStateMachine::smoothFilter(float value, float prev) {
   return FILTER_ALPHA * value + (1.0f - FILTER_ALPHA) * prev;
 }
 

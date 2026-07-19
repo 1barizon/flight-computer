@@ -13,14 +13,14 @@
  * @see firmware/REFACTORING_PLAN.md - Fase 7
  */
 
-#include "TelemetryTask.h"
+#include "flight/TelemetryTask.h"
 
-#include "../config.h"
-#include "../modules/filesystem_module.h"
-#include "../modules/lora_module.h"
-#include "../sensors/GPSModule.h"
-#include "FlightControlTask.h"  // extern sensorDataQueue
-#include "LoggerTask.h"
+#include "config.h"
+#include "modules/filesystem_module.h"
+#include "modules/lora_module.h"
+#include "sensors/GPSModule.h"
+#include "flight/FlightControlTask.h"
+#include "flight/LoggerTask.h"
 
 TaskHandle_t g_telemetryTaskHandle = nullptr;
 

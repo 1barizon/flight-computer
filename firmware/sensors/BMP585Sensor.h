@@ -39,7 +39,7 @@ public:
   void checkHighest();
 
 private:
-  Adafruit_BMP5XX _bmp;
+  Adafruit_BMP5xx _bmp;
   bool _ready;
   float base_pressure;
   float altitude;

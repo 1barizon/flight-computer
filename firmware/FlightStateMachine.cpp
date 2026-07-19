@@ -17,7 +17,8 @@
  * @see test/FSM/FSM.ino lines 76–117 — original detection functions
  */
 
-#include "FlightStateMachine.h"
+#include "flight/FlightStateMachine.h"
+#include "config.h"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constructor / lifecycle

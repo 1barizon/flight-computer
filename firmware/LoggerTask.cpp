@@ -6,7 +6,7 @@
  * @see firmware/REFACTORING_PLAN.md - Fase 7
  */
 
-#include "LoggerTask.h"
+#include "flight/LoggerTask.h"
 
 #include <cstring>
 

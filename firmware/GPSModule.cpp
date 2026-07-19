@@ -6,8 +6,8 @@
  * @see firmware/REFACTORING_PLAN.md Fase 5
  */
 
-#include "GPSModule.h"
-#include "../config.h"
+#include "sensors/GPSModule.h"
+#include "config.h"
 
 /**
  * @brief Constructor with HardwareSerial dependency injection
@@ -53,20 +53,20 @@ String GPSModule::getData() {
 
 bool GPSModule::isReady() { return _ready; }
 
-String GPSModule::getTimeString() const {
+String GPSModule::getTimeString() {
   if (!_gps.time.isValid()) return "nan";
   char buf[16];
   sprintf(buf, "%02d:%02d:%02d", _gps.time.hour(), _gps.time.minute(), _gps.time.second());
   return String(buf);
 }
 
-String GPSModule::getDateString() const {
+String GPSModule::getDateString() {
   if (!_gps.date.isValid()) return "nan";
   char buf[16];
   sprintf(buf, "%04d/%02d/%02d", _gps.date.year(), _gps.date.month(), _gps.date.day());
   return String(buf);
 }
 
-bool GPSModule::hasValidFix() const {
+bool GPSModule::hasValidFix() {
   return _gps.location.isValid();
 }

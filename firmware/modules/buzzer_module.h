@@ -40,14 +40,9 @@
  * @note The function blocks during tone generation due to delay() calls
  * @warning Invalid signal types will print an error message to Serial
  * 
- * @see buzzSignal() is called by telemetry_module.h for operation feedback
  * @see BUZZER_PIN is defined in config.h
  */
-
-
-
-
-void buzzSignal(String signal)
+inline void buzzSignal(String signal)
 {
   int frequency = 500;   // Tone frequency in Hz (500Hz chosen for audibility)
   

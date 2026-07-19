@@ -24,15 +24,15 @@ public:
   bool isReady() override;
 
   // Específicos do GPS
-  String getTimeString() const;
-  String getDateString() const;
-  bool hasValidFix() const;
+  String getTimeString();
+  String getDateString();
+  bool hasValidFix();
 
   // Accessors para preencher SensorData
-  double getLatitude()   const { return _gps.location.isValid() ? _gps.location.lat() : 0.0; }
-  double getLongitude()  const { return _gps.location.isValid() ? _gps.location.lng() : 0.0; }
-  float  getGPSAltitude() const { return _gps.location.isValid() ? (float)_gps.altitude.meters() : 0.0f; }
-  uint8_t getSatellites() const { return (uint8_t)_gps.satellites.value(); }
+  double getLatitude()   { return _gps.location.isValid() ? _gps.location.lat() : 0.0; }
+  double getLongitude()  { return _gps.location.isValid() ? _gps.location.lng() : 0.0; }
+  float  getGPSAltitude() { return _gps.location.isValid() ? (float)_gps.altitude.meters() : 0.0f; }
+  uint8_t getSatellites() { return (uint8_t)_gps.satellites.value(); }
 
 private:
   TinyGPSPlus _gps;

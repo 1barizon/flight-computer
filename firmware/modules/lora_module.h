@@ -55,7 +55,7 @@
  * @warning Operating on wrong frequency may violate local regulations
  * @see config.h for pin and frequency configuration
  */
-bool setupLoRa()
+inline bool setupLoRa()
 {
   // Configure SPI pins for LoRa module
   LoRa.setPins(SS_LORA, RST_LORA, DIO0_LORA);
@@ -104,7 +104,7 @@ bool setupLoRa()
  * @note TelemetryTask builds the message with snprintf and transmits via
  *       sendLoRa() + Serial (telemetry_module.h was removed in v2.0)
  */
-void sendLoRa(const String &message)
+inline void sendLoRa(const String &message)
 {
   // Start a new LoRa packet
   LoRa.beginPacket();

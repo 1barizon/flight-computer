@@ -30,9 +30,9 @@
 
 #include <Arduino.h>
 #include <cmath>
-#include "../sensors/BMP585Sensor.h"
-#include "../sensors/ISensor.h"
-#include "../sensors/LSM6DS3Sensor.h"
+#include "sensors/BMP585Sensor.h"
+#include "sensors/ISensor.h"
+#include "sensors/LSM6DS3Sensor.h"
 #include "SensorData.h"
 
 /**

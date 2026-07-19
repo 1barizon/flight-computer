@@ -28,7 +28,7 @@
  * @note FlightControlTask runs at 50Hz (FLIGHT_CONTROL_PERIOD_MS);
  *       TelemetryTask and LoggerTask run at 5Hz.
  * 
- * @author #11 Avionics
+ * @author Serra Rocketry
  * @date 2026
  */
 

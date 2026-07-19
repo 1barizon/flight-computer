@@ -1,42 +1,29 @@
 /**
- * @file parachute_module.h
- * @brief Parachute servo actuator module
- *
- * This module owns the parachute release servo and exposes the
- * initialization routine (setupServo). The deployment DECISION is no longer
- * made here — it lives in the FlightStateMachine (apogee detection, Option A)
- * and is acted upon by FlightControlTask, which calls ParachuteServo.write()
- * the moment the FSM confirms deploy conditions.
- *
- * This separation keeps the actuator (this module) decoupled from the
- * detection logic (FSM) and the safety-critical task (FlightControlTask).
- *
+ * @file parachute_module.cpp
+ * @brief Parachute servo actuator module implementation
+ * 
+ * Defines the global Servo object used by FlightControlTask.
+ * 
  * @author #11
  * @date 2026
  */
 
-#ifndef PARACHUTE_MODULE_H
-#define PARACHUTE_MODULE_H
-
-#include <Arduino.h>
-#include <ESP32Servo.h>
+#include "modules/parachute_module.h"
 #include "config.h"
 
 //==============================================================================
-// PARACHUTE SERVO (actuator owned by this module)
+// GLOBAL DEFINITIONS
 //==============================================================================
 
 /**
  * Servo motor object for parachute deployment.
  * FlightControlTask actuates it via ParachuteServo.write(SERVO_OPEN)
  * when FlightStateMachine::isParachuteDeployed() becomes true.
- * 
- * Defined in parachute_module.cpp
  */
-extern Servo ParachuteServo;
+Servo ParachuteServo;
 
 //==============================================================================
-// INITIALIZATION
+// IMPLEMENTATION
 //==============================================================================
 
 /**
@@ -49,6 +36,14 @@ extern Servo ParachuteServo;
  * @see config.h for SERVO_PIN, SERVO_CLOSED, and SERVO_OPEN.
  * @return true if the servo attached successfully, false otherwise.
  */
-bool setupServo();
+bool setupServo() {
+  // ESP32Servo::attach() returns true on success.
+  if (!ParachuteServo.attach(SERVO_PIN)) {
+    return false;
+  }
 
-#endif // PARACHUTE_MODULE_H
+  // Move to closed/locked position.
+  ParachuteServo.write(SERVO_CLOSED);
+
+  return true;
+}

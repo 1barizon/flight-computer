@@ -42,7 +42,7 @@
  * @warning If returns false, data logging will fail
  * @see writeFile() and appendFile() require successful initialization
  */
-bool setupLittleFS()
+inline bool setupLittleFS()
 {
   // Mount LittleFS with auto-format on failure
   if (!LittleFS.begin(true))
@@ -74,7 +74,7 @@ bool setupLittleFS()
  * @warning This function OVERWRITES existing files
  * @see appendFile() for adding data to existing files
  */
-bool writeFile(const String &path, const String &data_string)
+inline bool writeFile(const String &path, const String &data_string)
 {
   // Open file in write mode (creates new or overwrites existing)
   File file = LittleFS.open(path, FILE_WRITE);
@@ -120,7 +120,7 @@ bool writeFile(const String &path, const String &data_string)
  * @note File is automatically closed after append
  * @see writeFile() for creating new files with headers
  */
-void appendFile(const String &path, const String &message)
+inline void appendFile(const String &path, const String &message)
 {
   // Open file in append mode
   File file = LittleFS.open(path, FILE_APPEND);

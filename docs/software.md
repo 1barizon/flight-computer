@@ -63,26 +63,40 @@ graph TB
 
 ## Project Structure (v2.0)
 
-```
+> **Build note**: the Arduino IDE / arduino-cli only compiles `.cpp`/`.h` files
+> located **at the sketch root** (`firmware/`). Headers (`.h`) are kept in
+> subfolders (`sensors/`, `flight/`, `modules/`) for organization; the matching
+> implementation files (`.cpp`) live at the root so they are picked up by the
+> Arduino build (subfolders are not recursed for sources).
+
+```text
 firmware/
 ├── firmware.ino                # Entry point (FreeRTOS setup + init*Task())
-├── config.h                    # Pin definitions, thresholds, LoRa params
-├── sensors/                    # OOP sensor abstraction (ISensor)
+├── config.cpp                  # Config helpers (sketch-root source)
+├── sensors/                    # OOP sensor abstraction (ISensor) — headers
 │   ├── ISensor.h               # Abstract interface (begin/update/getData/isReady)
-│   ├── BMP585Sensor.h/.cpp     # Barometer (altitude, pressure, temp, Vz)
-│   ├── LSM6DS3Sensor.h/.cpp    # IMU (accel + gyro)
-│   └── GPSModule.h/.cpp        # GNSS (lat/lon/alt/sats, non-blocking)
-├── modules/                    # Actuators & peripherals
+│   ├── BMP585Sensor.h          # Barometer (altitude, pressure, temp, Vz)
+│   ├── LSM6DS3Sensor.h         # IMU (accel + gyro)
+│   └── GPSModule.h             # GNSS (lat/lon/alt/sats, non-blocking)
+├── modules/                    # Actuators & peripherals — headers
 │   ├── parachute_module.h      # ParachuteServo + setupServo() (servo owner)
 │   ├── lora_module.h           # setupLoRa() / sendLoRa() (915 MHz)
 │   ├── buzzer_module.h         # Status buzzer
 │   └── filesystem_module.h     # LittleFS (writeFile/appendFile)
-├── flight/                     # Flight logic (FreeRTOS tasks + FSM)
+├── flight/                     # Flight logic — headers
 │   ├── SensorData.h            # SensorData struct + FlightState enum
-│   ├── FlightStateMachine.h/.cpp  # FSM (4 states + 7 sub-events)
-│   ├── FlightControlTask.h/.cpp   # Task 1 — 50 Hz (FSM + deploy + queue)
-│   ├── TelemetryTask.h/.cpp       # Task 2 — 5 Hz (assemble + LoRa + file)
-│   └── LoggerTask.h/.cpp          # Task 3 — low priority (log Serial)
+│   ├── FlightStateMachine.h    # FSM (4 states + 7 sub-events)
+│   ├── FlightControlTask.h     # Task 1 — 50 Hz (FSM + deploy + queue)
+│   ├── TelemetryTask.h         # Task 2 — 5 Hz (assemble + LoRa + file)
+│   └── LoggerTask.h            # Task 3 — low priority (log Serial)
+├── BMP585Sensor.cpp            # sensor impl (root — compiled by Arduino)
+├── LSM6DS3Sensor.cpp
+├── GPSModule.cpp
+├── FlightStateMachine.cpp
+├── FlightControlTask.cpp
+├── TelemetryTask.cpp
+├── LoggerTask.cpp
+├── parachute_module.cpp
 ├── REFACTORING_PLAN.md         # v2.0 architecture specification
 ├── MODULOS.md                  # Module documentation
 └── docs -> ../docs             # telemetry-format.md (FSM/format reference)

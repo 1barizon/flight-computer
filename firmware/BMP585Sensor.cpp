@@ -6,7 +6,7 @@
  * @see firmware/REFACTORING_PLAN.md Fase 3
  */
 
-#include "BMP585Sensor.h"
+#include "sensors/BMP585Sensor.h"
 
 BMP585Sensor::BMP585Sensor()
     : _ready(false), base_pressure(0.0F), altitude(0.0F), temperature(0.0F),
@@ -23,7 +23,7 @@ BMP585Sensor::BMP585Sensor()
  * @note Blocking: performs one sensor reading during calibration
  */
 bool BMP585Sensor::begin() {
-  if (!_bmp.begin_I2C()) {
+  if (!_bmp.begin()) {
     Serial.println("BMP585 initialization failed.");
     _ready = false;
     return false;

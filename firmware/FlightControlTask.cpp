@@ -6,18 +6,18 @@
  * @see firmware/REFACTORING_PLAN.md - Fase 7
  */
 
-#include "FlightControlTask.h"
+#include "flight/FlightControlTask.h"
 
 #include <esp_task_wdt.h>
 #include <esp_timer.h>
 #include <ESP32Servo.h>
 
-#include "../config.h"
-#include "../sensors/BMP585Sensor.h"
-#include "../sensors/LSM6DS3Sensor.h"
-#include "../modules/parachute_module.h"
-#include "FlightStateMachine.h"
-#include "LoggerTask.h"
+#include "config.h"
+#include "sensors/BMP585Sensor.h"
+#include "sensors/LSM6DS3Sensor.h"
+#include "modules/parachute_module.h"
+#include "flight/FlightStateMachine.h"
+#include "flight/LoggerTask.h"
 
 TaskHandle_t  g_flightControlTaskHandle = nullptr;
 QueueHandle_t sensorDataQueue           = nullptr;
@@ -92,9 +92,9 @@ bool initFlightControlTask() {
     return false;
   }
 
-  if(!setupServo()){
-    Serial.println("[FlightControl] FATAL: failed to close parachute")
-    return false
+  if (!setupServo()) {
+    Serial.println("[FlightControl] FATAL: failed to close parachute");
+    return false;
   }
 
   
@@ -119,7 +119,12 @@ void taskFlightControl(void* pvParameters) {
   // so seja armado quando a task que o alimenta esta de fato rodando — se
   // xTaskCreatePinnedToCore falhasse com o init la, o TWDT ficaria armado
   // globalmente sem nenhuma task para chamar esp_task_wdt_reset().
-  if (esp_task_wdt_init(FLIGHT_CONTROL_WDT_TIMEOUT_S, true) != ESP_OK) {
+  esp_task_wdt_config_t twdt_config = {
+      .timeout_ms = FLIGHT_CONTROL_WDT_TIMEOUT_S * 1000,
+      .idle_core_mask = 0,
+      .trigger_panic = true
+  };
+  if (esp_task_wdt_init(&twdt_config) != ESP_OK) {
     Serial.println("[FlightControl] ERROR: watchdog init failed");
     logMessage(TASK_ID_FLIGHT_CONTROL, LOG_LEVEL_ERROR, "Watchdog init failed");
   }

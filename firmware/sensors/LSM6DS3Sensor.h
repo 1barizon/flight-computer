@@ -10,7 +10,7 @@
 #define LSM6DS3SENSOR_H
 
 #include "ISensor.h"
-#include <Adafruit_LSM6DS.h>
+#include <Adafruit_LSM6DS3.h>
 #include <Adafruit_Sensor.h>
 #include <Arduino.h>
 
@@ -50,7 +50,7 @@ public:
   }
 
 private:
-  Adafruit_LSM6DS3 lsm;
+  Adafruit_LSM6DS lsm;
   bool ready;
   float accelX, accelY, accelZ;
   float gyroX, gyroY, gyroZ;

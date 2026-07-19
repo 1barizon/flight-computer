@@ -7,7 +7,7 @@
  * @see firmware/REFACTORING_PLAN.md Fase 4
  */
 
-#include "LSM6DS3Sensor.h"
+#include "sensors/LSM6DS3Sensor.h"
 #include <cmath>
 
 /**

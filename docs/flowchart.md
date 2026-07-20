@@ -74,7 +74,7 @@ graph TB
 | Sensor data queue | 25 slots |
 | Log queue | 50 slots |
 
-## Parachute Deployment (Option A)
+## Parachute Deployment
 
 1. FSM detects apogee: `|vz| < 1 m/s AND az < -0.1 m/s²`
 2. FSM transitions to `DESCENT`

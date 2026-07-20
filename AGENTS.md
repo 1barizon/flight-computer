@@ -4,7 +4,7 @@ This guide is for AI coding agents working on the Flight Computer project (#11 -
 
 ## Project Context
 
-- **Hardware**: ESP32-S3 (primary), ESP32-C3 SuperMini (legacy prototype)
+- **Hardware**: ESP32-S3 (primary), ESP32-C3 SuperMini (legacy)
 - **Language**: C/C++ (Arduino framework)
 - **Architecture**: v2.0 (OOP + FreeRTOS + FSM - implemented), v1.0 (procedural, EOL)
 - **Key Docs**: `firmware/REFACTORING_PLAN.md`, `CONTRIBUTING.md`, `docs/software.md`

@@ -156,7 +156,7 @@ void handleParachute() {
 }
 ```
 
-**v2.0** — apogee detection in the FSM (`detectParachute`, Option A):
+**v2.0** — apogee detection in the FSM (`detectParachute`):
 
 ```cpp
 // config.h
@@ -379,11 +379,4 @@ in the Fase 9 cleanup.
 - FSM: `python3 extras/FSM_tester/FSM_Tester.py` (real 1,873-point flight data)
 - Telemetry: `python3 extras/validate_telemetry_format.py` (flight→receiver
   index match)
-- Parachute Option A: validated with RocketPy simulation + real flight CSV.
-
-## Open items / carry-over
-
-- Hardware I2C pins are the ESP32-C3 default (SDA/SCL); verify against the
-  KiCad silkscreen before next board spin.
-- `docs/flowchart.md` and `hardware/` still reference some legacy artifacts —
-  tracked separately from this migration.
+- Parachute: validated with RocketPy simulation + real flight CSV.

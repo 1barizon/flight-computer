@@ -1,9 +1,9 @@
 # Avionics — Onboard Computer
 
-> **v2.0 Flight Computer** for Serra Rocketry (#11).
+> **v2.0 Flight Computer** for Serra Rocketry (#11 - Dedalo).
 >
 > OOP + FreeRTOS + 4-state FSM, validated against real flight data.
-> Built for the ESP32-S3 (ESP32-C3 SuperMini used for legacy prototype).
+> Built for the ESP32-S3.
 
 ## Overview
 
@@ -13,9 +13,8 @@ under FreeRTOS, reading barometric (BMP585), inertial (LSM6DS3) and GPS
 
 - **Flight state machine**: IDLE → ASCENT → DESCENT → LANDED, with sub-event
   flags (liftoff, burnout, apogee, freefall, parachute)
-- **Parachute deployment**: Option A (apogee + stable negative Vz, 3-cycle
-  confirmation, 50 m ground guard) — validated against RocketPy + 1,873
-  real flight data points
+- **Parachute deployment**: Apogee + stable negative Vz, 3-cycle
+  confirmation, 50 m ground guard — validated against RocketPy + real flight data points
 - **Telemetry**: 22-field CSV over LoRa @ 915 MHz to ground receiver
 - **Logging**: SD card (primary) with LittleFS flash fallback
 - **Safety**: NaN/Inf rejection, sensor fallback, TWDT watchdog, multi-condition parachute logic
@@ -51,13 +50,6 @@ Two FreeRTOS cores with queue-based communication:
    `ESP32Servo`, `LoRa by Sandeep Mistry`
 4. Compile (`Ctrl+R`) and upload (`Ctrl+U`)
 
-### PlatformIO (alternative)
-
-```bash
-platformio run -e esp32-s3                  # build
-platformio run -e esp32-s3 -t upload        # flash
-```
-
 ### Validate without hardware
 
 ```bash
@@ -83,10 +75,7 @@ python3 extras/validate_telemetry_format.py    # 22-field telemetry alignment
 
 - [`docs/software.md`](docs/software.md) — Software architecture
 - [`docs/hardware.md`](docs/hardware.md) — Hardware specs, pinout, BOM
-- [`docs/telemetry-format.md`](docs/telemetry-format.md) — Telemetry wire format (single source of truth)
 - [`docs/flowchart.md`](docs/flowchart.md) — FreeRTOS + FSM flow diagram
-- [`firmware/MODULOS.md`](firmware/MODULOS.md) — Module reference
-- [`firmware/REFACTORING_PLAN.md`](firmware/REFACTORING_PLAN.md) — Full v2.0 architecture spec
 - [`AGENTS.md`](AGENTS.md) — AI agent coding guide
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — How to contribute
 
@@ -102,12 +91,12 @@ extras/     Scripts, FSM tester, format validator
 
 ## Status
 
-All 10 refactoring phases are **complete** — v2.0 is fully implemented and
+All refactoring plan phases are **complete** — v2.0 is fully implemented and
 documented. See [`CHANGELOG.md`](CHANGELOG.md) for the full release history.
 
 ## Team
 
-Serra Rocketry — #11 Avionics
+Serra Rocketry — #11 Dedalo - LASC 2026
 
 ## License
 

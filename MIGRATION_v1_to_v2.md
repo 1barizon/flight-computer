@@ -275,7 +275,7 @@ is intentionally empty (`vTaskDelay(portMAX_DELAY)`).
 cleaner separation. The monolithic `firmware.ino` is now only an entry point
 that calls `init*Task()` functions.
 
-### 2. Parachute at apogee (Option A), not at a fixed altitude ceiling
+### 2. Parachute at apogee, not at a fixed altitude ceiling
 
 **v1.0**: `handleParachute()` opened the servo when altitude dropped below
 `ALTITUDE_THRESHOLD = 750 m` with a velocity/drop guard
@@ -294,11 +294,11 @@ deploy 949.5 m) and real flight data (apogee 272 m → deploy 268 m). This was
 the user-mandated decision ("deploy MUST open at apogee for ANY flight above
 min altitude").
 
-### 3. Telemetry format — Option B (v2.0 22-field), not a shrink to 19
+### 3. Telemetry format — v2.0 22-field, not a shrink to 19
 
 **v1.0**: ad-hoc CSV, different field order than the receiver expected.
 
-**v2.0**: chose **Option B** — a clean v2.0 wire format of 22 fields emitted by
+**v2.0**: a clean v2.0 wire format of 22 fields emitted by
 the flight computer and parsed by the receiver
 (`recovery-webui/components/receiver-lora`):
 
@@ -310,8 +310,8 @@ maxAltitude,state,alt,lat,lon,sat,parachute,rssi
 The receiver re-emits 24 fields (inserts local GPS `hora`/`data` + real `rssi`).
 Single source of truth: `docs/telemetry-format.md`.
 
-**Why Option B over Option A** (shrinking the flight CSV to the old 19-field
-v1.0 layout): keeps the richer v2.0 diagnostics (`vz`, `maxAltitude`, `state`,
+**Why shrinking the flight CSV to the old 19-fieldv1.0 layout**: 
+keeps the richer v2.0 diagnostics (`vz`, `maxAltitude`, `state`,
 `parachute`) and fixes a real parsing bug where the old 19-field parser shifted
 `alt`/`lat`/`lon`/`sat`/`rssi` onto the wrong indices. Validated end-to-end
 with `extras/validate_telemetry_format.py`.
@@ -325,8 +325,7 @@ Sync word `0xF3`, SF7, BW 125 kHz, CR 4/5, TX +17 dBm, CRC on — all aligned
 explicitly in `lora_module.h` `setupLoRa()`.
 
 **Why**: the flight computer and receiver must share the same frequency to
-communicate at all. The receiver was already on 915 MHz, so the flight side
-was moved to match.
+communicate at all.
 
 ### 5. Sensor hardware upgrade
 

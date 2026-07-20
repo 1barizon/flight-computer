@@ -14,7 +14,7 @@ not just *what* the code looks like now.
 | Architecture | Procedural `loop()` in one `firmware.ino` (~680 lines) | OOP + FreeRTOS, modular `sensors/` `modules/` `flight/` |
 | Sensors | BMP280 + MPU6050 + NEO-6M | BMP585 + LSM6DS3 + NEO-8M |
 | Flight logic | `handleParachute()` with altitude ceiling | `FlightStateMachine` (4 states + 7 sub-events) |
-| Parachute | Deploy at `ALTITUDE_THRESHOLD = 750 m` | Deploy at **apogee** (Option A) |
+| Parachute | Deploy at `ALTITUDE_THRESHOLD = 750 m` | Deploy at **apogee** |
 | Comms | LoRa 868 MHz, ad-hoc CSV | LoRa 915 MHz, v2.0 22-field format |
 | Web UI | ESPAsyncWebServer on board | Removed (receiver provides web UI) |
 | Storage | LittleFS, v1.0 CSV header | SD card (filesystem_module.h `setupStorage`), LittleFS fallback; 22-field v2.0 CSV |

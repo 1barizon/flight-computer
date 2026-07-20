@@ -102,33 +102,6 @@ firmware/
 └── docs -> ../docs             # telemetry-format.md (FSM/format reference)
 ```
 
-## Component Mapping
-
-### ISensor Interface → Implementations
-
-| Interface | Sensor | Hardware | Status | Phase |
-|-----------|--------|----------|--------|-------|
-| `ISensor` | BMP585Sensor | Bosch BMP585 Barometer | Complete | 3 |
-| `ISensor` | LSM6DS3Sensor | ST LSM6DS3 IMU | Complete | 4 |
-| `ISensor` | GPSModule | u-blox NEO-8M GPS | Complete | 5 |
-| - | LoRa Module | Semtech RFM95W (915 MHz) | Complete | 10 |
-| - | Parachute Servo | MG92B Servo | Complete | 9 |
-
-### Phases Completed
-
-| Phase | Description | Status |
-|-------|-------------|--------|
-| 1 | Setup & project structure | Complete |
-| 2 | Base interfaces (`ISensor`, `SensorData`) | Complete |
-| 3 | BMP585Sensor | Complete |
-| 4 | LSM6DS3Sensor | Complete |
-| 5 | GPSModule | Complete |
-| 6 | Flight State Machine (4 states + 7 sub-events) | Complete |
-| 7 | FreeRTOS Tasks (FlightControl/Telemetry/Logger) | Complete |
-| 8 | Integration (firmware.ino refactor) | Complete |
-| 9 | Parachute deploy logic (Option A: apogee) + cleanup | Complete |
-| 10 | Telemetry v2.0 format aligned with receiver | Complete |
-
 ## FreeRTOS Tasks
 
 | Task | Core | Rate | Priority | Responsibility |

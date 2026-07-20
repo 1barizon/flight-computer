@@ -4,8 +4,7 @@
 
 The onboard computer uses an **ESP32-S3** microcontroller (the v2.0 target
 platform) as its core, integrated with a barometric altimeter, GPS, IMU and a
-LoRa communication module. The PCB was designed in KiCad with mechanical
-compatibility for the SR21000 rocket.
+LoRa communication module.
 
 > **Note — prototype vs target**: the early dev firmware ran on an
 > ESP32-C3 SuperMini; the v2.0 design (schematic `hardware/electronics/...`)
@@ -42,20 +41,6 @@ GPIO 12 → SD_CS_PIN  (SD Card Chip Select)
 GPIO 20 → RX_GPS     (UART RX — GPS TX)
 GPIO 21 → TX_GPS     (UART TX — GPS RX)
 ```
-
-> **Module variant (N8R8 vs N8R2) — verify**: the schematic symbol
-> (`hardware/electronics/.../electronics.kicad_sch`) is the
-> `ESP32-S3-DEVKITC-1` with `lib_id`/description set to **N8R8** (8 MB Flash +
-> 8 MB PSRAM), but the `Value` label on the sheet reads **N8R2** (2 MB Flash, no
-> PSRAM). Confirm the actual purchased variant on the order/BOM — the firmware
-> memory footprint (LittleFS + queues) is modest, so either works, but PSRAM
-> availability changes what libraries can be used.
-
-> **PCB footprint mismatch — fix before fabrication**: the board layout
-> (`hardware/electronics/.../electronics.kicad_pcb`) still places the
-> `ESP32-C3_SUPERMINI_TH` footprint, which does **not** match the S3 DevKitC-1
-> symbol. Re-assign the footprint to the S3 DevKitC-1 (or the WROOM-1 module you
-> will mount) and re-route before ordering.
 
 **Power Supply**: 3.3V nominal (regulated by LM2596).
 

@@ -1104,8 +1104,23 @@ satellite / 24 no protocolo do receiver).
 | Deadlock entre tasks | Baixa | Alto | Nunca usar `portMAX_DELAY` em Task FSM |
 | Queue overflow | Média | Médio | Monitorar `uxQueueMessagesWaiting()` |
 | Watchdog falso positivo | Baixa | Alto | Testar com timeout maior (10s) primeiro |
+| Watchdog reset no meio do voo | Baixa | **Crítico** | **RESOLVIDO**: FSM persiste estado + base_pressure em NVS (`flight/fsm`); no boot, `restoreFromNVS()` retoma ASCENT/DESCENT e o paraquedas abre no apogeu mesmo após reset (validado: `extras/FSM_tester/validate_watchdog_reboot.py`) |
 | GPS sem fix indoor | Alta | Baixo | Usar fallback "NOFIX" para filename |
 | Filesystem lento | Média | Baixo | OK, Task 2 pode atrasar |
+
+### Recuperação pós-reset (Watchdog) — implementada em v2.0
+
+Comportamento após um reset por watchdog **no meio do voo**:
+
+1. `FlightStateMachine::begin()` chama `restoreFromNVS()`:
+   - Sem snapshot válido (1º boot, ou voo anterior terminou em LANDED → snapshot limpo) → FSM começa fresca em IDLE.
+   - Snapshot válido em ASCENT/DESCENT → FSM **retoma do estado salvo** (flags + contador de confirmação), e a `base_pressure` do local de lançamento é restaurada no BMP585 → a altitude continua **absoluta ao solo de lançamento** (sem o re-nivelamento que fazia o firmware "esquecer" a altura).
+2. Snapshot é gravado em toda transição de estado, no deploy do paraquedas e uma vez no boot. `reset()` limpa o snapshot.
+3. `setupServo(keepOpen)`: se o snapshot diz que o paraquedas já foi acionado, o servo **não é fechado** no boot (fechar o compartimento com o paraquedas aberto em voo o soltaria).
+
+Validação: `extras/FSM_tester/validate_watchdog_reboot.py` — reboots em 5 fases do voo simulado (queima, coasting, pré-apogeu, pós-apogeu, pós-deploy) + 4 fases do voo real: **sem o fix o paraquedas nunca abre** (FSM presa em IDLE); **com o fix abre no apogeu em todos os cenários** (949.5 m simulado, 268 m real).
+
+> ⚠️ Limitações conhecidas: um reboot durante a queima só rearma se a aceleração > 15 m/s² persistir após o boot; snapshot "stale" (aborte antes de LANDED) pode restaurar ASCENT no solo — a guarda `PARACHUTE_MIN_ALTITUDE` impede deploy falso em solo.
 
 ---
 
@@ -1154,6 +1169,13 @@ satellite / 24 no protocolo do receiver).
 ---
 
 ## 📝 Changelog
+
+### 2026-08-04 - Recuperação pós-reset por Watchdog (NVS)
+- ✅ FSM persiste snapshot em NVS (`Preferences`, namespace `flight`/chave `fsm`): estado, flags, contador de confirmação, `base_pressure` do lançamento e `maxAltitude`
+- ✅ `restoreFromNVS()` em `begin()`: retoma ASCENT/DESCENT após reboot no meio do voo; snapshot LANDED é limpo (boot fresco); sem snapshot → IDLE
+- ✅ `BMP585Sensor::setBasePressure()`/`setMaxAltitude()`: altitude continua absoluta ao solo de lançamento após o reset (sem re-nivelamento no ponto do reboot)
+- ✅ `setupServo(keepOpen)`: servo não é fechado no boot se o paraquedas já foi acionado
+- ✅ Novo validador `extras/FSM_tester/validate_watchdog_reboot.py` (PASS em todos os cenários: 5 fases do voo simulado + 4 do voo real)
 
 ### 2026-03-18 - Planejamento Completo (v1.0)
 - ✅ Arquitetura definida (POO + FreeRTOS + FSM)

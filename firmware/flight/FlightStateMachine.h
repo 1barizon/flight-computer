@@ -95,9 +95,29 @@ public:
   /**
    * @brief Resets FSM to IDLE and clears all event flags
    *
-   * Use between flights or after a watchdog reset.
+   * Use between flights. Also clears the persisted NVS snapshot so the next
+   * boot starts fresh (a mid-flight watchdog reboot now restores the last
+   * saved state from NVS instead of starting over).
    */
   void reset();
+
+  /**
+   * @brief Persist current FSM state + baro reference to NVS
+   *
+   * Called on every state transition, on parachute deploy, and once at
+   * begin(). The snapshot (state, flags, confirm counter, launch base
+   * pressure, max altitude) survives a watchdog reboot.
+   */
+  void persistToNVS();
+
+  /**
+   * @brief Restore FSM state + baro reference from NVS (after a reboot)
+   *
+   * Called from begin(). If no valid snapshot exists (first boot, or the
+   * previous flight reached LANDED), the FSM stays fresh at IDLE and the
+   * stale snapshot is cleared.
+   */
+  void restoreFromNVS();
 
   // ── Detection thresholds (validated — do not change without re-validation) ─
   //
@@ -125,6 +145,32 @@ private:
   float    _filtAy;
   float    _filtAz;
   bool     _firstReading;
+
+  // ── NVS persistence (watchdog-reboot recovery) ──────────────────────────
+  // Fixed-layout POD; read/written as an opaque blob via Preferences.
+  // magic/version guard against stale or ABI-changed snapshots.
+  static constexpr uint32_t NVS_MAGIC   = 0x46534D31;  // "FSM1"
+  static constexpr uint32_t NVS_VERSION = 1;
+  static const char* const  NVS_NAMESPACE;             // "flight" (defined in .cpp)
+  static const char* const  NVS_KEY;                   // "fsm" (defined in .cpp)
+
+  // Sub-event flag bits (bit0..bit4, must match persistToNVS/restoreFromNVS)
+  static constexpr uint8_t FLAG_LIFTOFF    = 1 << 0;
+  static constexpr uint8_t FLAG_BURNOUT    = 1 << 1;
+  static constexpr uint8_t FLAG_APOGEE     = 1 << 2;
+  static constexpr uint8_t FLAG_FREEFALL   = 1 << 3;
+  static constexpr uint8_t FLAG_PARACHUTE  = 1 << 4;
+
+  struct NvsSnapshot {
+    uint32_t magic;          // NVS_MAGIC
+    uint32_t version;        // NVS_VERSION
+    int32_t  state;          // FlightState as int
+    uint8_t  flags;          // FLAG_* bits
+    uint8_t  confirmCount;   // _parachuteConfirmCount
+    uint16_t reserved;       // padding, keep layout deterministic
+    float    basePressure;   // hPa, launch-site reference
+    float    maxAltitude;    // m, peak altitude so far
+  };
 
   void transitionTo(FlightState next);
 

@@ -118,6 +118,30 @@ float BMP585Sensor::getMaxAltitude() const { return _maxAltitude; }
 
 float BMP585Sensor::getVerticalVelocity() const { return _verticalVelocity; }
 
+void BMP585Sensor::setBasePressure(float basePressure) {
+  if (!(basePressure > 100.0F && basePressure < 1200.0F)) {
+    Serial.println("BMP585: invalid base pressure rejected");
+    return;
+  }
+  _basePressure = basePressure;
+  _altitude = _bmp.readAltitude(_basePressure);
+
+  // Validate like update(): fall back to previous value on corruption
+  if (isnan(_altitude) || _altitude < -500.0F || _altitude > 50000.0F) {
+    return;
+  }
+
+  // Reset derivative state so the first Vz after restore is a real reading
+  _prevAltitude = _altitude;
+  _prevTime = millis();
+}
+
+void BMP585Sensor::setMaxAltitude(float maxAltitude) {
+  _maxAltitude = maxAltitude;
+}
+
+float BMP585Sensor::getBasePressure() const { return _basePressure; }
+
 void BMP585Sensor::checkHighest() {
   if (_altitude > _maxAltitude) {
     _maxAltitude = _altitude;

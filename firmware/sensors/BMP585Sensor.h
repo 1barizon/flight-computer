@@ -38,6 +38,31 @@ public:
   float getVerticalVelocity() const;
   void checkHighest();
 
+  /**
+   * @brief Restore the launch-site reference pressure after a watchdog reboot
+   *
+   * Overrides the base pressure captured at boot (which, mid-flight, would be
+   * the pressure at the reboot point) with the value persisted to NVS at
+   * launch, so altitude stays relative to the launch site across resets.
+   * Recomputes altitude, resets _prevAltitude so the first Vz after restore
+   * is a real reading (no derivative spike).
+   *
+   * @param basePressure Reference sea-level pressure in hPa (from NVS)
+   */
+  void setBasePressure(float basePressure);
+
+  /**
+   * @brief Restore the peak-altitude tracker after a watchdog reboot
+   * @param maxAltitude Peak altitude reached so far, in meters (from NVS)
+   */
+  void setMaxAltitude(float maxAltitude);
+
+  /**
+   * @brief Current base pressure reference (hPa)
+   * @note Used by FlightStateMachine to persist the launch reference to NVS
+   */
+  float getBasePressure() const;
+
 private:
   Adafruit_BMP5xx _bmp;
   bool _ready;

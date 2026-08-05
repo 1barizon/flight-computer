@@ -19,6 +19,11 @@
 
 #include "flight/FlightStateMachine.h"
 #include "config.h"
+#include <Preferences.h>
+
+// NVS keys (defined out-of-line — static const char* const members)
+const char* const FlightStateMachine::NVS_NAMESPACE = "flight";
+const char* const FlightStateMachine::NVS_KEY       = "fsm";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constructor / lifecycle
@@ -46,7 +51,13 @@ bool FlightStateMachine::begin() {
     return false;
   }
   _ready = true;
-  Serial.println("[FSM] Ready — IDLE");
+  // After a watchdog reboot mid-flight, resume where the FSM was instead of
+  // starting over at IDLE (which would never re-arm and never deploy).
+  restoreFromNVS();
+  // Always persist the current state + launch reference so a later reboot
+  // has a valid snapshot to restore.
+  persistToNVS();
+  Serial.println("[FSM] Ready");
   return true;
 }
 
@@ -64,7 +75,13 @@ void FlightStateMachine::reset() {
   _parachuteConfirmCount = 0;
   _filtAx = _filtAy = _filtAz = 0.0f;
   _firstReading = true;
-  Serial.println("[FSM] Reset -> IDLE");
+  // Clear the persisted snapshot so the next boot starts fresh at IDLE.
+  Preferences prefs;
+  if (prefs.begin(NVS_NAMESPACE, false)) {
+    prefs.remove(NVS_KEY);
+    prefs.end();
+  }
+  Serial.println("[FSM] Reset -> IDLE (NVS cleared)");
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -139,6 +156,7 @@ void FlightStateMachine::update() {
       if (!_parachuteDeployed && detectParachute(height, vz)) {
         if (++_parachuteConfirmCount >= PARACHUTE_CONFIRM_CYCLES) {
           _parachuteDeployed = true;
+          persistToNVS();  // safety-critical: survive a reboot right after deploy
           Serial.printf("[FSM] PARACHUTE DEPLOYED h=%.1f vz=%.2f\n", height, vz);
         }
       } else {
@@ -188,6 +206,90 @@ bool FlightStateMachine::isParachuteDeployed() const     { return _parachuteDepl
 void FlightStateMachine::transitionTo(FlightState next) {
   Serial.printf("[FSM] %s -> %s\n", getFlightStateName(_state), getFlightStateName(next));
   _state = next;
+  persistToNVS();
+}
+
+// ── NVS persistence ─────────────────────────────────────────────────────────
+
+void FlightStateMachine::persistToNVS() {
+  NvsSnapshot snap;
+  snap.magic         = NVS_MAGIC;
+  snap.version       = NVS_VERSION;
+  snap.state         = static_cast<int32_t>(_state);
+  snap.flags         = (_liftoffDetected  ? FLAG_LIFTOFF   : 0)
+                     | (_burnoutDetected  ? FLAG_BURNOUT   : 0)
+                     | (_apogeeDetected   ? FLAG_APOGEE    : 0)
+                     | (_freefallDetected ? FLAG_FREEFALL  : 0)
+                     | (_parachuteDeployed ? FLAG_PARACHUTE : 0);
+  snap.confirmCount  = _parachuteConfirmCount;
+  snap.reserved      = 0;
+  snap.basePressure  = _baro->getBasePressure();
+  snap.maxAltitude   = _baro->getMaxAltitude();
+
+  Preferences prefs;
+  if (!prefs.begin(NVS_NAMESPACE, false)) {
+    Serial.println("[FSM] NVS open failed (write)");
+    return;
+  }
+  const size_t written = prefs.putBytes(NVS_KEY, &snap, sizeof(snap));
+  prefs.end();
+  if (written != sizeof(snap)) {
+    Serial.println("[FSM] WARN: NVS snapshot write size mismatch");
+  }
+}
+
+void FlightStateMachine::restoreFromNVS() {
+  Preferences prefs;
+  if (!prefs.begin(NVS_NAMESPACE, true)) {
+    Serial.println("[FSM] NVS open failed (read) — fresh IDLE");
+    return;
+  }
+  NvsSnapshot snap;
+  const size_t got = prefs.getBytes(NVS_KEY, &snap, sizeof(snap));
+  prefs.end();
+
+  if (got != sizeof(snap) || snap.magic != NVS_MAGIC || snap.version != NVS_VERSION) {
+    Serial.println("[FSM] No valid NVS state — fresh IDLE");
+    return;
+  }
+
+  if (snap.state == static_cast<int32_t>(LANDED)) {
+    // Previous flight already completed; clear the stale snapshot and start fresh.
+    Preferences w;
+    if (w.begin(NVS_NAMESPACE, false)) {
+      w.remove(NVS_KEY);
+      w.end();
+    }
+    Serial.println("[FSM] NVS state was LANDED — cleared, fresh IDLE");
+    return;
+  }
+
+  if (snap.state < static_cast<int32_t>(IDLE) ||
+      snap.state > static_cast<int32_t>(LANDED)) {
+    Serial.println("[FSM] NVS state out of range — fresh IDLE");
+    return;
+  }
+
+  _state = static_cast<FlightState>(snap.state);
+  _liftoffDetected   = snap.flags & FLAG_LIFTOFF;
+  _burnoutDetected   = snap.flags & FLAG_BURNOUT;
+  _apogeeDetected    = snap.flags & FLAG_APOGEE;
+  _freefallDetected  = snap.flags & FLAG_FREEFALL;
+  _parachuteDeployed = snap.flags & FLAG_PARACHUTE;
+  _parachuteConfirmCount = snap.confirmCount;
+  _firstReading = true;  // re-seed the IIR filter from the first raw sample
+
+  // Altitude continuity: restore the LAUNCH-site reference (captured at boot
+  // mid-flight it would be the reboot-point pressure, making the FSM think
+  // it is at ground level).
+  if (snap.basePressure > 100.0f && snap.basePressure < 1200.0f) {
+    _baro->setBasePressure(snap.basePressure);
+    _baro->setMaxAltitude(snap.maxAltitude);
+  }
+
+  Serial.printf("[FSM] Restored from NVS: %s parachute=%d h=%.1f m\n",
+                getStateName(), _parachuteDeployed ? 1 : 0,
+                _baro->getAltitude());
 }
 
 // ── Detection functions ───────────────────────────────────────────────────────

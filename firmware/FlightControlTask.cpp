@@ -85,6 +85,10 @@ bool initFlightControlTask() {
     Serial.println("[FlightControl] FATAL: FSM initialization failed");
     return false;
   }
+  // g_fsm->begin() restored the NVS snapshot after a watchdog reboot:
+  // mark the actuator as already fired so the task does not re-deploy,
+  // and keep the servo open if the chute was already released mid-flight.
+  g_parachuteActuated = g_fsm->isParachuteDeployed();
 
   sensorDataQueue = xQueueCreate(SENSOR_DATA_QUEUE_LEN, sizeof(SensorData));
   if (sensorDataQueue == nullptr) {
@@ -92,7 +96,7 @@ bool initFlightControlTask() {
     return false;
   }
 
-  if (!setupServo()) {
+  if (!setupServo(g_fsm->isParachuteDeployed())) {
     Serial.println("[FlightControl] FATAL: failed to close parachute");
     return false;
   }

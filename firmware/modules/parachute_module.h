@@ -45,10 +45,15 @@ extern Servo ParachuteServo;
  * Attaches the servo to SERVO_PIN and moves it to SERVO_CLOSED so the
  * parachute compartment is locked before flight operations begin.
  *
+ * @param keepOpen If true, leaves the servo at SERVO_OPEN instead. Used after
+ *        a watchdog reboot when the FSM snapshot says the parachute was
+ *        already deployed mid-flight — closing the compartment on a deployed
+ *        chute would release it at altitude.
+ *
  * @note Called from initFlightControlTask() during setup.
  * @see config.h for SERVO_PIN, SERVO_CLOSED, and SERVO_OPEN.
  * @return true if the servo attached successfully, false otherwise.
  */
-bool setupServo();
+bool setupServo(bool keepOpen = false);
 
 #endif // PARACHUTE_MODULE_H

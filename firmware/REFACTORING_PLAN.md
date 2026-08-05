@@ -1105,6 +1105,8 @@ satellite / 24 no protocolo do receiver).
 | Queue overflow | Média | Médio | Monitorar `uxQueueMessagesWaiting()` |
 | Watchdog falso positivo | Baixa | Alto | Testar com timeout maior (10s) primeiro |
 | Watchdog reset no meio do voo | Baixa | **Crítico** | **RESOLVIDO**: FSM persiste estado + base_pressure em NVS (`flight/fsm`); no boot, `restoreFromNVS()` retoma ASCENT/DESCENT e o paraquedas abre no apogeu mesmo após reset (validado: `extras/FSM_tester/validate_watchdog_reboot.py`) |
+| FSM presa em estado errado (bug/edge case) | Média | **Crítico** | **RESOLVIDO**: backstop de queda livre independente da FSM no FlightControlTask — acc < 3 m/s² por 1s + vz < -5 m/s + h > 50m abre o paraquedas mesmo com a FSM presa em IDLE/ASCENT (validado: `extras/FSM_tester/validate_freefall_backstop.py`) |
+| Deploy do paraquedas na subida (falso positivo) | Baixa | Crítico | Guard `vz < -5 m/s` no backstop separa queda real de burnout/coasting (accel ~0 logo após o motor parar); validado em dados reais |
 | GPS sem fix indoor | Alta | Baixo | Usar fallback "NOFIX" para filename |
 | Filesystem lento | Média | Baixo | OK, Task 2 pode atrasar |
 
@@ -1121,6 +1123,27 @@ Comportamento após um reset por watchdog **no meio do voo**:
 Validação: `extras/FSM_tester/validate_watchdog_reboot.py` — reboots em 5 fases do voo simulado (queima, coasting, pré-apogeu, pós-apogeu, pós-deploy) + 4 fases do voo real: **sem o fix o paraquedas nunca abre** (FSM presa em IDLE); **com o fix abre no apogeu em todos os cenários** (949.5 m simulado, 268 m real).
 
 > ⚠️ Limitações conhecidas: um reboot durante a queima só rearma se a aceleração > 15 m/s² persistir após o boot; snapshot "stale" (aborte antes de LANDED) pode restaurar ASCENT no solo — a guarda `PARACHUTE_MIN_ALTITUDE` impede deploy falso em solo.
+
+### Backstop de queda livre (independente da FSM) — implementado em v2.0
+
+Segunda camada de segurança, complementar ao NVS: cobre o caso em que a FSM está **viva mas presa no estado errado** (ex.: snapshot NVS restaurado em ASCENT com o foguete caindo de verdade; FSM em IDLE sem snapshot válido). O NVS não cobre esse caso — o backstop sim.
+
+No loop do FlightControlTask (50Hz), `checkFreefallBackstop()`:
+
+```
+totalAccel (IIR α=0.2, filtro próprio) < 3.0 m/s²   por 50 ciclos consecutivos (1.0s)
+        AND vz < -5.0 m/s                            (descendo de verdade)
+        AND altitude > 50 m                          (guarda de solo)
+        → deployParachute()  (idempotente via g_parachuteActuated)
+```
+
+Decisões de projeto (fundamentadas em dados reais):
+- **`vz < -5 m/s` é obrigatório**: o accel cai para ~0g logo após o burnout (foguete ainda subindo) — no voo real a janela zero-g começa 4s ANTES do apogeu. Sem a condição de velocidade, o paraquedas abriria na subida a ~190 m.
+- **Janela de 1.0s**: janelas zero-g reais duram 8–131s (sobra tempo), spikes de vibração em solo são transitórios (22–122 m/s²) e são rejeitados pela janela.
+- **Filtro IIR próprio** (não usa estado da FSM): funciona mesmo com a FSM corrompida.
+- Em voo normal o backstop dispara 1–3s APÓS o deploy da FSM (nunca antes); com a FSM presa, abre a 922 m (simulado) / 255 m (real) — sempre acima do piso.
+
+Validação: `extras/FSM_tester/validate_freefall_backstop.py` — cenários A (FSM ok: backstop inofensivo), B (FSM presa em IDLE: backstop abre no apogeu), C (sem falso positivo no burnout), D (bancada: nunca dispara). Todos PASS nos 2 datasets de voo + bancada.
 
 ---
 
@@ -1169,6 +1192,12 @@ Validação: `extras/FSM_tester/validate_watchdog_reboot.py` — reboots em 5 fa
 ---
 
 ## 📝 Changelog
+
+### 2026-08-04 - Backstop de queda livre (independente da FSM)
+- ✅ `checkFreefallBackstop()` no FlightControlTask: acc < 3 m/s² (IIR próprio) por 1.0s + vz < -5 m/s + h > 50 m → deploy idempotente
+- ✅ Cobre FSM viva mas presa em estado errado (gap do NVS); nunca dispara na subida (guard vz) nem em solo (janela + piso)
+- ✅ Validado em Python antes do C++: `extras/FSM_tester/validate_freefall_backstop.py` (A: inofensivo em voo normal, B: abre com FSM presa, C: sem falso positivo no burnout, D: bancada) — PASS em todos
+- ✅ Thresholds em `config.h` (`FREEFALL_BACKSTOP_*`) dimensionados com dados reais
 
 ### 2026-08-04 - Recuperação pós-reset por Watchdog (NVS)
 - ✅ FSM persiste snapshot em NVS (`Preferences`, namespace `flight`/chave `fsm`): estado, flags, contador de confirmação, `base_pressure` do lançamento e `maxAltitude`

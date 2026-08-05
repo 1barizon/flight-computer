@@ -30,6 +30,83 @@ FlightStateMachine*  g_fsm = nullptr;
 
 bool  g_parachuteActuated = false;
 
+// ── Free-fall backstop state (FSM-independent safety net) ───────────────────
+// Own IIR-filtered acceleration so the detector never depends on the FSM
+// internals: even if the state machine is stuck (e.g. restored to ASCENT
+// while actually falling), the backstop still sees the raw sensor stream.
+static bool     g_ffFilterSeeded  = false;
+static float    g_ffFiltAx = 0.0f, g_ffFiltAy = 0.0f, g_ffFiltAz = 0.0f;
+static uint16_t g_ffSustainedCycles = 0;
+
+/**
+ * @brief FSM-independent free-fall detector (safety backstop)
+ *
+ * Fires once when total acceleration (IIR-filtered, alpha=0.2) stays below
+ * FREEFALL_BACKSTOP_ACC_THRESHOLD for FREEFALL_BACKSTOP_CYCLES consecutive
+ * cycles while the rocket is descending faster than FREEFALL_BACKSTOP_VZ and
+ * still above FREEFALL_BACKSTOP_MIN_HEIGHT. Returns true exactly once, then
+ * stays latched until the next reset() (via g_ffSustainedCycles saturation).
+ *
+ * Covers the failure mode the NVS persistence cannot: FSM alive but stuck in
+ * the wrong state (IDLE after a reboot with no valid snapshot, or ASCENT
+ * while actually falling) — the chute still opens at apogee.
+ *
+ * @note Validated offline: extras/FSM_tester/validate_freefall_backstop.py
+ *       (never fires before apogee, fires 1-3s after the FSM deploy, never
+ *       on pad vibration).
+ * @return true when the backstop has just fired (deploy now)
+ */
+bool checkFreefallBackstop() {
+  // Latch: once fired, keep returning true until a reboot/reset.
+  if (g_ffSustainedCycles > FREEFALL_BACKSTOP_CYCLES) {
+    return true;
+  }
+
+  float ax, ay, az;
+  g_imu->getAcceleration(&ax, &ay, &az);
+
+  if (!std::isfinite(ax) || !std::isfinite(ay) || !std::isfinite(az)) {
+    return false;
+  }
+
+  // IIR low-pass, same alpha as the FSM (seed on first reading).
+  if (!g_ffFilterSeeded) {
+    g_ffFiltAx = ax;
+    g_ffFiltAy = ay;
+    g_ffFiltAz = az;
+    g_ffFilterSeeded = true;
+  } else {
+    g_ffFiltAx += FILTER_ALPHA * (ax - g_ffFiltAx);
+    g_ffFiltAy += FILTER_ALPHA * (ay - g_ffFiltAy);
+    g_ffFiltAz += FILTER_ALPHA * (az - g_ffFiltAz);
+  }
+
+  const float acc = sqrtf(g_ffFiltAx * g_ffFiltAx +
+                          g_ffFiltAy * g_ffFiltAy +
+                          g_ffFiltAz * g_ffFiltAz);
+  if (!std::isfinite(acc)) {
+    return false;
+  }
+
+  const float height = g_baro->getAltitude();
+  const float vz     = g_baro->getVerticalVelocity();
+
+  const bool freefalling = (acc < FREEFALL_BACKSTOP_ACC_THRESHOLD &&
+                            vz  < FREEFALL_BACKSTOP_VZ &&
+                            height > FREEFALL_BACKSTOP_MIN_HEIGHT);
+  if (freefalling) {
+    g_ffSustainedCycles++;
+    if (g_ffSustainedCycles == FREEFALL_BACKSTOP_CYCLES) {
+      Serial.printf("[FlightControl] BACKSTOP: free-fall acc=%.2f vz=%.2f h=%.1f\n",
+                    acc, vz, height);
+      return true;
+    }
+  } else {
+    g_ffSustainedCycles = 0;
+  }
+  return false;
+}
+
 FlightControlStats g_stats = {0, 0, 0, 0, 0};
 
 /**
@@ -163,6 +240,17 @@ void taskFlightControl(void* pvParameters) {
       g_parachuteActuated = true;
       Serial.println("[FlightControl] PARACHUTE DEPLOYED");
       logMessage(TASK_ID_FLIGHT_CONTROL, LOG_LEVEL_WARN, "Parachute deployed");
+    }
+
+    // 4b) Free-fall backstop (FSM-independent safety net). Fires only when the
+    //     FSM has not deployed yet; the parachute opens at apogee even if the
+    //     state machine is stuck. Idempotent via g_parachuteActuated.
+    if (!g_parachuteActuated && checkFreefallBackstop()) {
+      deployParachute();
+      g_parachuteActuated = true;
+      Serial.println("[FlightControl] BACKSTOP: parachute deployed (free-fall)");
+      logMessage(TASK_ID_FLIGHT_CONTROL, LOG_LEVEL_WARN,
+                 "Backstop free-fall deploy");
     }
 
     // 5) Queue -> TelemetryTask

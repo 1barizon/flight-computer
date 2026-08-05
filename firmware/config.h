@@ -191,6 +191,20 @@ static constexpr float APOGEE_AZ_THRESHOLD      = -0.1f;  ///< m/s²  az below t
 static constexpr float FREEFALL_ACC_THRESHOLD   = 11.5f;  ///< m/s²  total accel
 static constexpr float FREEFALL_MIN_HEIGHT      =  5.0f;  ///< m     minimum altitude
 static constexpr float FREEFALL_MAX_VZ          = -5.0f;  ///< m/s   vz must be below this
+
+// ── Free-fall backstop (FSM-independent safety net) ─────────────────────────
+// Detects a real free fall WITHOUT relying on the FSM state. Runs in the
+// FlightControlTask loop; fires only when total accel (IIR-filtered) stays
+// below near-zero-g for a full second WHILE descending fast and well above
+// the ground guard. The vz < -5 m/s condition is what separates real descent
+// from burnout/coasting (where vz is still positive) — without it the chute
+// would deploy on ascent right after motor cutoff (accel dips to ~0).
+// Sized with real flight data: zero-g windows last 8-131s, pad vibration
+// spikes (22-122 m/s²) are transient so the 1s window rejects them.
+static constexpr float   FREEFALL_BACKSTOP_ACC_THRESHOLD = 3.0f;    ///< m/s²  near zero-g (≈0.3g)
+static constexpr float   FREEFALL_BACKSTOP_VZ            = -5.0f;   ///< m/s   must be descending this fast
+static constexpr float   FREEFALL_BACKSTOP_MIN_HEIGHT    = 50.0f;   ///< m     ground guard (same as PARACHUTE_MIN_ALTITUDE)
+static constexpr uint16_t FREEFALL_BACKSTOP_CYCLES       = 50;      ///< consecutive cycles = 1.0s at 50Hz (FLIGHT_CONTROL_PERIOD_MS=20)
 static constexpr float PARACHUTE_MIN_ALTITUDE    = 50.0f;  ///< m  minimum altitude (ground guard — never deploy below)
 static constexpr float PARACHUTE_CONFIRM_VZ      = -2.0f;  ///< m/s negative Vz required to confirm descent after apogee
 static constexpr uint8_t PARACHUTE_CONFIRM_CYCLES = 3;     ///< consecutive cycles of (vz < CONFIRM_VZ) before deploy

@@ -11,6 +11,7 @@
 #include <esp_task_wdt.h>
 #include <esp_timer.h>
 #include <ESP32Servo.h>
+#include <string.h>
 
 #include "config.h"
 #include "sensors/BMP585Sensor.h"
@@ -46,6 +47,10 @@ static bool     g_baroStaleFilterSeeded = false;
 static float    g_bsFiltAx = 0.0f, g_bsFiltAy = 0.0f, g_bsFiltAz = 0.0f;
 static bool     g_bsLiftoffLatched = false;
 static uint16_t g_bsSustainedCycles = 0;
+
+// ── Pad arming state (risk #2) ──────────────────────────────────────────────
+static char     armBuffer[16] = {0};
+static int      armBufferLen  = 0;
 
 /**
  * @brief FSM-independent free-fall detector (safety backstop)
@@ -191,6 +196,74 @@ bool checkBaroStaleContingency() {
   return false;
 }
 
+// ── Pad arming (risk #2) ────────────────────────────────────────────────────
+// Bench vibration can false-liftoff the FSM into ASCENT; a reboot then
+// restores ASCENT from NVS and the FSM lands on the pad without ever
+// deploying (LANDED on the ramp, parachute=False). The ARM command clears
+// the NVS snapshot, re-captures base_pressure and zeroes maxAltitude.
+// Refused once the flight really started (maxAltitude above the pad guard
+// or parachute already open).
+static void handleArmCommand() {
+  // Non-blocking read of one complete line (e.g. "ARM\n" from the pad).
+  while (Serial.available() > 0) {
+    const char c = static_cast<char>(Serial.read());
+    if (c == '\n' || c == '\r') {
+      if (armBufferLen > 0) {
+        armBuffer[armBufferLen] = '\0';
+        if (strcmp(armBuffer, "ARM") == 0) {
+          const bool flightStarted =
+              g_baro->getMaxAltitude() >= ARM_MAX_ARM_ALTITUDE;
+          if (flightStarted || g_parachuteActuated ||
+              g_fsm->isParachuteDeployed()) {
+            Serial.println("[FlightControl] ARM refused: flight already "
+                           "started or parachute open");
+            logMessage(TASK_ID_FLIGHT_CONTROL, LOG_LEVEL_WARN,
+                       "ARM refused (flight started)");
+          } else {
+            g_fsm->reset();                       // IDLE + NVS cleared
+            g_baro->setBasePressure(g_baro->getPressure());
+            g_baro->setMaxAltitude(0.0f);
+            Serial.println("[FlightControl] ARM OK: NVS cleared, "
+                           "base_pressure re-captured");
+            logMessage(TASK_ID_FLIGHT_CONTROL, LOG_LEVEL_WARN,
+                       "Pad armed (NVS cleared, base re-captured)");
+          }
+        }
+        armBufferLen = 0;
+      }
+    } else if (armBufferLen < (int)sizeof(armBuffer) - 1) {
+      armBuffer[armBufferLen++] = c;
+    }
+  }
+}
+
+// Complement to ARM: while the FSM sits on the pad in IDLE, a baro pressure
+// drift pulls the relative altitude negative. After ARM_REZERO_SUSTAIN_CYCLES
+// of sustained drift below ARM_REZERO_THRESHOLD, re-capture base_pressure and
+// zero maxAltitude automatically so a low flight still crosses the ground
+// guard.
+static void checkAutoRezero() {
+  static uint16_t rezeroCycles = 0;
+  if (g_fsm->getState() != IDLE || g_parachuteActuated) {
+    rezeroCycles = 0;
+    return;
+  }
+  if (g_baro->getAltitude() < ARM_REZERO_THRESHOLD) {
+    rezeroCycles++;
+    if (rezeroCycles >= ARM_REZERO_SUSTAIN_CYCLES) {
+      g_baro->setBasePressure(g_baro->getPressure());
+      g_baro->setMaxAltitude(0.0f);
+      Serial.println("[FlightControl] Auto re-zero: base_pressure "
+                     "re-captured (pad drift)");
+      logMessage(TASK_ID_FLIGHT_CONTROL, LOG_LEVEL_WARN,
+                 "Auto re-zero on pad (baro drift)");
+      rezeroCycles = 0;
+    }
+  } else {
+    rezeroCycles = 0;
+  }
+}
+
 FlightControlStats g_stats = {0, 0, 0, 0, 0};
 
 /**
@@ -311,6 +384,10 @@ void taskFlightControl(void* pvParameters) {
     // 1) Sensores (ordem sequencial, ambos non-blocking)
     g_baro->update();
     g_imu->update();
+
+    // 1b) Pad arming (risk #2): ARM via Serial + auto re-zero do barometro
+    handleArmCommand();
+    checkAutoRezero();
 
     // 2) FSM
     g_fsm->update();

@@ -223,6 +223,17 @@ static constexpr uint32_t BARO_STALE_AGE_MS          = 2000;  ///< ms without a 
 static constexpr float    BARO_STALE_ACC_THRESHOLD   = 3.0f;  ///< m/s²  near zero-g (same as backstop)
 static constexpr float    BARO_STALE_MIN_HEIGHT      = 50.0f; ///< m     ground guard via last-good maxAltitude
 static constexpr uint16_t BARO_STALE_SUSTAIN_CYCLES  = 125;   ///< 2.5s @ 50Hz (FLIGHT_CONTROL_PERIOD_MS=20ms)
+
+// ── Pad arming (risk #2) ─────────────────────────────────────────────────────
+// Bench vibration (13_30_11: spikes 22-122 m/s²) can false-liftoff the FSM
+// into ASCENT; a reboot then restores ASCENT from NVS and the FSM lands on
+// the pad without ever deploying. An explicit ARM command on the pad clears
+// the NVS snapshot, re-captures base_pressure from the current reading and
+// zeroes maxAltitude. Complement: auto re-zero of base_pressure on the pad
+// when the relative altitude drifts below the threshold (1 hPa ~ 8.4 m).
+static constexpr float    ARM_MAX_ARM_ALTITUDE    = 10.0f;  ///< m   refuse ARM once the flight really started
+static constexpr float    ARM_REZERO_THRESHOLD    = -10.0f; ///< m   baro drift guard on the pad (relative alt)
+static constexpr uint16_t ARM_REZERO_SUSTAIN_CYCLES = 150;  ///< 3.0s @ 50Hz
 static constexpr float PARACHUTE_MIN_ALTITUDE    = 50.0f;  ///< m  minimum altitude (ground guard — never deploy below)
 static constexpr float PARACHUTE_CONFIRM_VZ      = -2.0f;  ///< m/s negative Vz required to confirm descent after apogee
 static constexpr uint8_t PARACHUTE_CONFIRM_CYCLES = 3;     ///< consecutive cycles of (vz < CONFIRM_VZ) before deploy

@@ -132,9 +132,13 @@ def load(path, alt_col="altp"):
     rows = []
     with open(path) as f:
         r = csv.DictReader(f)
+        # Autodetect: simulacoes RocketPy usam time/z; telemetria usa millis/altp
+        tcol = "time" if "time" in (r.fieldnames or []) else "millis"
+        if "z" in (r.fieldnames or []):
+            alt_col = "z"
         for row in r:
             try:
-                t = float(row["millis"])          # coluna e' SECONDS neste dataset
+                t = float(row[tcol])          # coluna e' SECONDS neste dataset
                 altp = float(row[alt_col])
                 ax = float(row["ax"]); ay = float(row["ay"]); az = float(row["az"])
             except (ValueError, KeyError):
@@ -143,7 +147,32 @@ def load(path, alt_col="altp"):
     if rows:
         base = rows[0][1]
         rows = [(t, altp - base, ax, ay, az) for (t, altp, ax, ay, az) in rows]
+    # Simulacoes RocketPy com passo adaptativo de ~2ms na subida: re-amostra a
+    # 50Hz quando qualquer parte do voo tem resolucao mais fina que o firmware
+    # (p10 dos dts < 10ms) — senao o vz por diferenca fica < 1 m/s apos o
+    # liftoff e o apogeu dispara falso (o firmware so ve medias de 20ms).
+    dts = sorted(b[0] - a[0] for a, b in zip(rows, rows[1:]) if b[0] - a[0] > 0)
+    if dts and dts[len(dts) // 10] < 0.010:
+        rows = resample_50hz(rows)
     return rows
+
+
+def resample_50hz(rows):
+    """Grade fixa dt=20ms (firmware roda a 50Hz) interpolando linearmente."""
+    import numpy as np
+
+    ts = np.array([r[0] for r in rows])
+    h = np.array([r[1] for r in rows])
+    ax = np.array([r[2] for r in rows])
+    ay = np.array([r[3] for r in rows])
+    az = np.array([r[4] for r in rows])
+    n = int(round((ts[-1] - ts[0]) / 0.02)) + 1
+    grid = ts[0] + np.arange(n) * 0.02
+    grid = grid[grid <= ts[-1] + 1e-9]
+    return [(t, float(hg), float(axg), float(ayg), float(azg))
+            for t, hg, axg, ayg, azg in
+            zip(grid, np.interp(grid, ts, h), np.interp(grid, ts, ax),
+                np.interp(grid, ts, ay), np.interp(grid, ts, az))]
 
 
 def run_flight(path, name):
@@ -248,6 +277,8 @@ if __name__ == "__main__":
     results = []
     results.append(run_flight(BASE + "dados_simulados.csv", "voo simulado RocketPy"))
     results.append(run_flight(BASE + "dados_filtrados.csv", "voo real"))
+    results.append(run_flight(BASE + "flight_results_thonyan.csv", "sim Thonyan (~682m)"))
+    results.append(run_flight(BASE + "flight_results_dedalo.csv", "sim Dedalo (~1544m)"))
     results.append((run_bench(BASE + "13_30_11-Dados.csv", "13_30_11"),))
     flat = [r for pair in results for r in (pair if isinstance(pair, tuple) else (pair,))]
     print(f"\n>>> {'TODOS OS CENARIOS COM FIX PASS' if all(flat) else 'ALGUM CENARIO FALHOU'}")

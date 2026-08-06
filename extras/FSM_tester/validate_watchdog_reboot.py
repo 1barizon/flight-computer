@@ -28,16 +28,20 @@ import sys
 sys.path.insert(0, ".")
 from validate_parachute_realflight import FSM, total_accel, smooth, \
     IDLE, ASCENT, DESCENT, LANDED, PARACHUTE_CONFIRM_CYCLES, \
-    PARACHUTE_MIN_ALTITUDE, PARACHUTE_CONFIRM_VZ
+    PARACHUTE_MIN_ALTITUDE, PARACHUTE_CONFIRM_VZ, resample_50hz
 
 
 def load(path, leveled=True):
     """Retorna [(t, altp_abs, ax, ay, az)]; altp nivelado se leveled=True"""
     rows = []
     with open(path) as f:
-        for row in csv.DictReader(f):
+        r = csv.DictReader(f)
+        # Autodetect: simulacoes RocketPy usam time/z; telemetria usa millis/altp
+        tcol = "time" if "time" in (r.fieldnames or []) else "millis"
+        hcol = "z" if "z" in (r.fieldnames or []) else "altp"
+        for row in r:
             try:
-                t = float(row["millis"]); altp = float(row["altp"])
+                t = float(row[tcol]); altp = float(row[hcol])
                 ax = float(row["ax"]); ay = float(row["ay"]); az = float(row["az"])
             except (ValueError, KeyError):
                 continue
@@ -45,6 +49,13 @@ def load(path, leveled=True):
     if leveled and rows:
         base = rows[0][1]
         rows = [(t, altp - base, ax, ay, az) for (t, altp, ax, ay, az) in rows]
+    # Simulacoes RocketPy com passo adaptativo de ~2ms na subida: re-amostra a
+    # 50Hz quando qualquer parte do voo tem resolucao mais fina que o firmware
+    # (p10 dos dts < 10ms) — senao o vz por diferenca fica < 1 m/s apos o
+    # liftoff e o apogeu dispara falso (o firmware so ve medias de 20ms).
+    dts = sorted(b[0] - a[0] for a, b in zip(rows, rows[1:]) if b[0] - a[0] > 0)
+    if dts and dts[len(dts) // 10] < 0.010:
+        rows = resample_50hz(rows)
     return rows
 
 
@@ -165,4 +176,12 @@ if __name__ == "__main__":
         BASE + "dados_filtrados.csv",
         reboot_times=[1.0, 4.0, 6.5, 8.0],
         label="VOO REAL")
-    sys.exit(0 if (ok1 and ok2) else 1)
+    ok3 = eval_dataset(
+        BASE + "flight_results_thonyan.csv",
+        reboot_times=[1.5, 8.0, 11.6, 12.5, 15.0],
+        label="SIM Thonyan (~682m)")
+    ok4 = eval_dataset(
+        BASE + "flight_results_dedalo.csv",
+        reboot_times=[2.0, 12.0, 17.5, 18.5, 22.0],
+        label="SIM Dedalo (~1544m)")
+    sys.exit(0 if (ok1 and ok2 and ok3 and ok4) else 1)

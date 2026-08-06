@@ -108,10 +108,14 @@ def load_real_flight(path):
     rows = []
     with open(path) as f:
         r = csv.DictReader(f)
+        # Autodetect de colunas: simulações RocketPy usam time/z (metros
+        # absolutos); telemetria real usa millis/altp (relativo ao base_pressure)
+        tcol = "time" if "time" in (r.fieldnames or []) else "millis"
+        hcol = "z" if "z" in (r.fieldnames or []) else "altp"
         for row in r:
             try:
-                t = float(row["millis"])
-                altp = float(row["altp"])
+                t = float(row[tcol])
+                altp = float(row[hcol])
                 ax = float(row["ax"])
                 ay = float(row["ay"])
                 az = float(row["az"])
@@ -125,6 +129,31 @@ def load_real_flight(path):
     return rows
 
 
+def resample_50hz(rows):
+    """Grade fixa dt=20ms (firmware roda a 50Hz) interpolando linearmente.
+
+    Simulações RocketPy usam passo adaptativo de ~2ms: com dt de 2ms o vz por
+    diferença fica < 1 m/s nos primeiros instantes apos o liftoff (0.33 m/s
+    em 2ms com 163 m/s²) e o apogeu dispararia FALSO logo apos o liftoff.
+    O firmware so ve medias de 20ms (vz ~3.9 m/s no primeiro ciclo) -> sem
+    apogeu falso. Re-amostrar a 50Hz replica exatamente o que o firmware ve.
+    """
+    import numpy as np
+
+    ts = np.array([r[0] for r in rows])
+    h = np.array([r[1] for r in rows])
+    ax = np.array([r[2] for r in rows])
+    ay = np.array([r[3] for r in rows])
+    az = np.array([r[4] for r in rows])
+    n = int(round((ts[-1] - ts[0]) / 0.02)) + 1
+    grid = ts[0] + np.arange(n) * 0.02
+    grid = grid[grid <= ts[-1] + 1e-9]
+    return [(t, float(hg), float(axg), float(ayg), float(azg))
+            for t, hg, axg, ayg, azg in
+            zip(grid, np.interp(grid, ts, h), np.interp(grid, ts, ax),
+                np.interp(grid, ts, ay), np.interp(grid, ts, az))]
+
+
 def run(path):
     rows = load_real_flight(path)
     if not rows:
@@ -132,6 +161,21 @@ def run(path):
         return
     print(f"\n=== VOO REAL: {path} ===")
     print(f"  amostras={len(rows)}  t0={rows[0][0]:.2f}s  tN={rows[-1][0]:.2f}s")
+
+    # Simulações RocketPy usam passo adaptativo: dt de ~2ms nos primeiros
+    # instantes (subida) e dt grande na descida. O firmware roda a 50Hz fixo —
+    # com dt de 2ms o vz por diferença fica < 1 m/s logo apos o liftoff
+    # (0.33 m/s em 2ms com 163 m/s²) e o apogeu dispararia FALSO. Se QUALQUER
+    # parte do voo tem resolucao mais fina que o firmware (p10 dos dts < 10ms),
+    # re-amostra tudo a 50Hz (o firmware so ve medias de 20ms: vz ~3.9 m/s no
+    # primeiro ciclo -> sem apogeu falso).
+    dts = sorted(b[0] - a[0] for a, b in zip(rows, rows[1:]) if b[0] - a[0] > 0)
+    dt_p10 = dts[len(dts) // 10] if dts else 0.0
+    if dt_p10 < 0.010:
+        print(f"  dt_p10={dt_p10 * 1000:.1f}ms (< 20ms do firmware) "
+              f"-> re-amostrando a 50Hz")
+        rows = resample_50hz(rows)
+        print(f"  amostras={len(rows)} (grade 50Hz)  tN={rows[-1][0]:.2f}s")
 
     fsm = FSM()
     apogee_t = apogee_h = None
@@ -172,3 +216,5 @@ if __name__ == "__main__":
     base = "/home/vinicius/Documentos/projects/flight-computer/extras/FSM_tester/"
     run(base + "dados_filtrados.csv")
     run(base + "dados_simulados.csv")
+    run(base + "flight_results_thonyan.csv")
+    run(base + "flight_results_dedalo.csv")

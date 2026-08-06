@@ -52,6 +52,7 @@ from validate_freefall_backstop import (
     FreefallBackstop,
     LIFTOFF_ACCEL_THRESHOLD,
     PARACHUTE_MIN_ALTITUDE,
+    resample_50hz,
     total_accel,
 )
 
@@ -75,10 +76,13 @@ def load(path):
     rows = []
     with open(path) as f:
         r = csv.DictReader(f)
+        # Autodetect: simulacoes RocketPy usam time/z; telemetria usa millis/altp
+        tcol = "time" if "time" in (r.fieldnames or []) else "millis"
+        hcol = "z" if "z" in (r.fieldnames or []) else "altp"
         for row in r:
             try:
-                t = float(row["millis"])
-                altp = float(row["altp"])
+                t = float(row[tcol])
+                altp = float(row[hcol])
                 ax = float(row["ax"])
                 ay = float(row["ay"])
                 az = float(row["az"])
@@ -91,6 +95,13 @@ def load(path):
         rows = [(t / 1000.0, altp, ax, ay, az) for (t, altp, ax, ay, az) in rows]
     base = rows[0][1]
     rows = [(t, altp - base, ax, ay, az) for (t, altp, ax, ay, az) in rows]
+    # Simulacoes RocketPy com passo adaptativo de ~2ms na subida: re-amostra a
+    # 50Hz quando qualquer parte do voo tem resolucao mais fina que o firmware
+    # (p10 dos dts < 10ms) — senao o vz por diferenca fica < 1 m/s apos o
+    # liftoff e o apogeu dispara falso (o firmware so ve medias de 20ms).
+    dts = sorted(b[0] - a[0] for a, b in zip(rows, rows[1:]) if b[0] - a[0] > 0)
+    if dts and dts[len(dts) // 10] < 0.010:
+        rows = resample_50hz(rows)
     return rows
 
 
@@ -312,6 +323,8 @@ if __name__ == "__main__":
     results = []
     results.append(run_alive(BASE + "dados_simulados.csv", "RocketPy"))
     results.append(run_alive(BASE + "dados_filtrados.csv", "voo real"))
+    results.append(run_alive(BASE + "flight_results_thonyan.csv", "sim Thonyan"))
+    results.append(run_alive(BASE + "flight_results_dedalo.csv", "sim Dedalo"))
     print()
     results.append(check_frozen_case(BASE + "dados_simulados.csv",
                                      "RocketPy", "apogeu", "B"))

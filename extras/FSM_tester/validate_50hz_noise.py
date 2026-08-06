@@ -62,6 +62,10 @@ TRUE_TOL = 0.05    # tolerancia do teste de paridade (s)
 EXPECTED = {
     "dados_simulados.csv":  {"apogee_t": 14.3, "deploy_t": 14.8},
     "dados_filtrados.csv":  {"apogee_t": 7.813, "deploy_t": 8.548},
+    # Simulacoes dos 2 proximos voos: valor impresso pelo validador realflight
+    # na grade 50Hz (2026-08-05) — dt nativo de ~2ms nao e representativo.
+    "flight_results_thonyan.csv": {"apogee_t": 11.86, "deploy_t": 12.22},
+    "flight_results_dedalo.csv":  {"apogee_t": 17.8, "deploy_t": 18.16},
 }
 
 
@@ -69,13 +73,17 @@ EXPECTED = {
 def load_csv(fn, tscale=1.0, alt_below=None):
     """Le (millis, altp, ax, ay, az); nivela altp ao primeiro sample.
     tscale: fator do tempo (13_30_11 tem millis em ms -> tscale=0.001).
-    alt_below: se dado, mantem apenas samples com altp < limite (porcao solo)."""
+    alt_below: se dado, mantem apenas samples com altp < limite (porcao solo).
+    Autodetect: simulacoes RocketPy usam time/z; telemetria usa millis/altp."""
     rows = []
     with open(fn) as f:
-        for row in csv.DictReader(f):
+        r = csv.DictReader(f)
+        tcol = "time" if "time" in (r.fieldnames or []) else "millis"
+        hcol = "z" if "z" in (r.fieldnames or []) else "altp"
+        for row in r:
             try:
-                t = float(row["millis"]) * tscale
-                altp = float(row["altp"])
+                t = float(row[tcol]) * tscale
+                altp = float(row[hcol])
                 ax = float(row["ax"])
                 ay = float(row["ay"])
                 az = float(row["az"])
@@ -187,6 +195,18 @@ def analyze_flight(name, path, n_runs):
     print(f"\n{'=' * 78}\nVOO: {name}  ({os.path.basename(path)}, "
           f"{len(rows)} amostras, {rows[0][0]:.2f}s -> {rows[-1][0]:.2f}s)")
     print("=" * 78)
+
+    # Simulacoes RocketPy usam passo adaptativo de ~2ms: com esse dt o vz por
+    # diferenca fica < 1 m/s logo apos o liftoff e o apogeu dispararia FALSO
+    # (o firmware roda a 50Hz fixo). Re-amostra a 50Hz ANTES de tudo quando a
+    # resolucao e mais fina que o firmware em qualquer parte do voo (p10 < 10ms).
+    dts = sorted(b[0] - a[0] for a, b in zip(rows, rows[1:]) if b[0] - a[0] > 0)
+    if dts and dts[len(dts) // 10] < 0.010:
+        print(f"[nota] dt_p10={dts[len(dts) // 10] * 1000:.1f}ms < 20ms do "
+              f"firmware -> re-amostrando a 50Hz antes da analise")
+        grid, hg, axg, ayg, azg = resample_50hz(rows)
+        rows = [(float(t), float(h), float(a), float(b), float(c))
+                for t, h, a, b, c in zip(grid, hg, axg, ayg, azg)]
 
     # 1) paridade com o validador existente (dados originais)
     fsm, at, ah, dt_, dh = run_fsm_native(rows)
@@ -327,7 +347,9 @@ def main():
 
     results = {}
     for name, fn in (("SIMULADO RocketPy (~950m)", "dados_simulados.csv"),
-                     ("VOO REAL (~272m)", "dados_filtrados.csv")):
+                     ("VOO REAL (~272m)", "dados_filtrados.csv"),
+                     ("SIM Thonyan (~682m)", "flight_results_thonyan.csv"),
+                     ("SIM Dedalo (~1544m)", "flight_results_dedalo.csv")):
         pct_ap, pct_dp = analyze_flight(name, os.path.join(BASE, fn), N_RUNS)
         results[fn] = (pct_ap, pct_dp)
 

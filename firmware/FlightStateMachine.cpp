@@ -137,7 +137,16 @@ void FlightStateMachine::update() {
         _burnoutDetected = true;
         Serial.printf("[FSM] BURNOUT  h=%.1f vz=%.2f acc=%.2f\n", height, vz, acc);
       }
-      if (!_apogeeDetected && detectApogee(vz, _filtAz)) {
+      // Apogee by vz only, single cycle. The az gate was removed (risk #5):
+      // apparent acceleration includes centripetal/pendulum terms and the
+      // accelerometer may have bias (real flight: az at rest = +2.81 m/s²),
+      // so filtered az can stay above -0.1 at the true apogee and the gate
+      // would lose it entirely. 50Hz quantization noise makes |vz| briefly
+      // cross zero before the real apogee — benign: the deploy gate below
+      // (vz < -2 m/s sustained) still only fires on the real descent.
+      // Validated: extras/FSM_tester/validate_50hz_noise.py (0 premature
+      // deploys) and analyze_apogee_robustness.py.
+      if (!_apogeeDetected && detectApogee(vz)) {
         _apogeeDetected = true;
         _parachuteConfirmCount = 0;  // Reset deploy confirmation at apogee
         transitionTo(DESCENT);
@@ -309,9 +318,9 @@ bool FlightStateMachine::detectBurnout(float ax, float ay, float az,
   return (az < BURNOUT_AZ_THRESHOLD || acc < BURNOUT_ACC_THRESHOLD);
 }
 
-// test/FSM/FSM.ino lines 100-102
-bool FlightStateMachine::detectApogee(float vz, float az) const {
-  return (fabsf(vz) < APOGEE_MAX_VZ && az < APOGEE_AZ_THRESHOLD);
+// test/FSM/FSM.ino lines 100-102 (az gate removed 2026-08-05, risk #5)
+bool FlightStateMachine::detectApogee(float vz) const {
+  return (fabsf(vz) < APOGEE_MAX_VZ);
 }
 
 // test/FSM/FSM.ino lines 104-109  (az param unused in the original too)

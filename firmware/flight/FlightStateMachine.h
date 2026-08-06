@@ -177,7 +177,7 @@ private:
   // Detection helpers — exact port from test/FSM/FSM.ino
   bool detectLiftoff(float ax, float ay, float az) const;
   bool detectBurnout(float ax, float ay, float az, float height, float vz) const;
-  bool detectApogee(float vz, float az) const;
+  bool detectApogee(float vz) const;
   bool detectFreefall(float vz, float height, float totalAcc) const;
   bool detectParachute(float height, float vz) const;
   bool detectLanded(float vz, float height) const;

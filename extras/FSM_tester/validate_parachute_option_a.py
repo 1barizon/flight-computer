@@ -28,7 +28,6 @@ import math
 # ── Thresholds (espelho de config.h Opcao A) ────────────────────────────────
 LIFTOFF_ACCEL_THRESHOLD = 15.0
 APOGEE_MAX_VZ = 1.0
-APOGEE_AZ_THRESHOLD = -0.1
 FILTER_ALPHA = 0.2
 PARACHUTE_MIN_ALTITUDE = 50.0   # piso de solo (nunca abrir abaixo)
 PARACHUTE_CONFIRM_VZ = -2.0     # vz negativo estavel (m/s)
@@ -65,7 +64,7 @@ class FSM:
         return total_accel(self.fax, self.fay, self.faz) > LIFTOFF_ACCEL_THRESHOLD
 
     def detect_apogee(self, vz):
-        return (abs(vz) < APOGEE_MAX_VZ and self.faz < APOGEE_AZ_THRESHOLD)
+        return (abs(vz) < APOGEE_MAX_VZ)
 
     # Opcao A: deploy apos apogeu + vz negativo estavel + acima do piso de solo
     def detect_parachute(self, height, vz):

@@ -38,7 +38,6 @@ FILTER_ALPHA                     = 0.2
 # FSM thresholds (mesmo do validate_parachute_realflight.py)
 LIFTOFF_ACCEL_THRESHOLD = 15.0
 APOGEE_MAX_VZ = 1.0
-APOGEE_AZ_THRESHOLD = -0.1
 PARACHUTE_MIN_ALTITUDE = 50.0
 PARACHUTE_CONFIRM_VZ = -2.0
 PARACHUTE_CONFIRM_CYCLES = 3
@@ -96,7 +95,7 @@ class FSM:
         return total_accel(self.fax, self.fay, self.faz) > LIFTOFF_ACCEL_THRESHOLD
 
     def detect_apogee(self, vz):
-        return (abs(vz) < APOGEE_MAX_VZ and self.faz < APOGEE_AZ_THRESHOLD)
+        return (abs(vz) < APOGEE_MAX_VZ)
 
     def detect_parachute(self, height, vz):
         return (height > PARACHUTE_MIN_ALTITUDE and vz < PARACHUTE_CONFIRM_VZ)

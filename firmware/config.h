@@ -186,8 +186,12 @@ static constexpr float BURNOUT_AZ_THRESHOLD     = -8.0f;  ///< m/s²  vertical a
 static constexpr float BURNOUT_ACC_THRESHOLD    =  2.0f;  ///< m/s²  total accel
 static constexpr float BURNOUT_MIN_HEIGHT       =  5.0f;  ///< m     minimum altitude
 static constexpr float BURNOUT_MIN_VZ           =  0.5f;  ///< m/s   minimum climb speed
-static constexpr float APOGEE_MAX_VZ            =  1.0f;  ///< m/s   |vz| below this
-static constexpr float APOGEE_AZ_THRESHOLD      = -0.1f;  ///< m/s²  az below this
+static constexpr float APOGEE_MAX_VZ            =  1.0f;  ///< m/s   |vz| below this (single cycle)
+// Az gate removed 2026-08-05 (risk #5): apparent accel includes pendulum
+// terms + sensor bias; the real flight had only ~0.81 m/s² margin and lost
+// the apogee under >=1.1 m/s² pendulum motion. vz-only is immune because vz
+// comes from the barometer, not the accelerometer. See
+// extras/FSM_tester/analyze_apogee_robustness.py.
 static constexpr float FREEFALL_ACC_THRESHOLD   = 11.5f;  ///< m/s²  total accel
 static constexpr float FREEFALL_MIN_HEIGHT      =  5.0f;  ///< m     minimum altitude
 static constexpr float FREEFALL_MAX_VZ          = -5.0f;  ///< m/s   vz must be below this

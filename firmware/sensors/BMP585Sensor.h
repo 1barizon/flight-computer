@@ -36,6 +36,15 @@ public:
   float getTemperature() const;
   float getMaxAltitude() const;
   float getVerticalVelocity() const;
+
+  /**
+   * @brief Age (ms) of the last valid barometer reading
+   * @return 0xFFFFFFFF if the sensor never produced a valid reading
+   * @note Used by the barometer-staleness contingency: a frozen barometer
+   *       keeps last-good altitude/vz values (never NaN), so staleness must
+   *       be tracked by time, not by value checks.
+   */
+  uint32_t getLastReadingAgeMs() const;
   void checkHighest();
 
   /**

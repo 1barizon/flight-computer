@@ -207,8 +207,22 @@ static constexpr float FREEFALL_MAX_VZ          = -5.0f;  ///< m/s   vz must be 
 // spikes (22-122 m/s²) are transient so the 1s window rejects them.
 static constexpr float   FREEFALL_BACKSTOP_ACC_THRESHOLD = 3.0f;    ///< m/s²  near zero-g (≈0.3g)
 static constexpr float   FREEFALL_BACKSTOP_VZ            = -5.0f;   ///< m/s   must be descending this fast
-static constexpr float   FREEFALL_BACKSTOP_MIN_HEIGHT    = 50.0f;   ///< m     ground guard (same as PARACHUTE_MIN_ALTITUDE)
-static constexpr uint16_t FREEFALL_BACKSTOP_CYCLES       = 50;      ///< consecutive cycles = 1.0s at 50Hz (FLIGHT_CONTROL_PERIOD_MS=20)
+static constexpr float FREEFALL_BACKSTOP_MIN_HEIGHT   = 50.0f;  ///< m     ground guard (same as PARACHUTE_MIN_ALTITUDE)
+static constexpr uint16_t FREEFALL_BACKSTOP_CYCLES     = 50;     ///< ~1.0s at 50Hz (FLIGHT_CONTROL_PERIOD_MS=20ms)
+
+// ── Barometer-staleness contingency (IMU-only, FSM-independent) ─────────────
+// If the barometer freezes mid-flight (I2C glitch, bad solder, EMI), both the
+// FSM and the free-fall backstop lose vz/height — neither would deploy and the
+// frozen values are plausible, so no NaN check catches it. This contingency
+// detects a sustained IMU-only free fall once the flight actually started
+// (accel > 15 m/s² seen at least once since boot) and the rocket climbed above
+// the ground guard (maxAltitude from the last good baro reading). The window
+// is longer than the backstop (2.5s vs 1.0s) because there is no vz<0 gate
+// nor a live height check without the barometer.
+static constexpr uint32_t BARO_STALE_AGE_MS          = 2000;  ///< ms without a valid baro reading => frozen
+static constexpr float    BARO_STALE_ACC_THRESHOLD   = 3.0f;  ///< m/s²  near zero-g (same as backstop)
+static constexpr float    BARO_STALE_MIN_HEIGHT      = 50.0f; ///< m     ground guard via last-good maxAltitude
+static constexpr uint16_t BARO_STALE_SUSTAIN_CYCLES  = 125;   ///< 2.5s @ 50Hz (FLIGHT_CONTROL_PERIOD_MS=20ms)
 static constexpr float PARACHUTE_MIN_ALTITUDE    = 50.0f;  ///< m  minimum altitude (ground guard — never deploy below)
 static constexpr float PARACHUTE_CONFIRM_VZ      = -2.0f;  ///< m/s negative Vz required to confirm descent after apogee
 static constexpr uint8_t PARACHUTE_CONFIRM_CYCLES = 3;     ///< consecutive cycles of (vz < CONFIRM_VZ) before deploy

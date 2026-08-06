@@ -118,6 +118,13 @@ float BMP585Sensor::getMaxAltitude() const { return _maxAltitude; }
 
 float BMP585Sensor::getVerticalVelocity() const { return _verticalVelocity; }
 
+uint32_t BMP585Sensor::getLastReadingAgeMs() const {
+  // _prevTime only advances on valid readings (update()/setBasePressure),
+  // so millis() - _prevTime is the age of the last GOOD sample. UINT32_MAX
+  // marks a sensor that never produced a valid reading.
+  return (_ready) ? (millis() - _prevTime) : 0xFFFFFFFFUL;
+}
+
 void BMP585Sensor::setBasePressure(float basePressure) {
   if (!(basePressure > 100.0F && basePressure < 1200.0F)) {
     Serial.println("BMP585: invalid base pressure rejected");

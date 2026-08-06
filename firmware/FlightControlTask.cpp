@@ -33,10 +33,19 @@ bool  g_parachuteActuated = false;
 // ── Free-fall backstop state (FSM-independent safety net) ───────────────────
 // Own IIR-filtered acceleration so the detector never depends on the FSM
 // internals: even if the state machine is stuck (e.g. restored to ASCENT
-// while actually falling), the backstop still sees the raw sensor stream.
-static bool     g_ffFilterSeeded  = false;
-static float    g_ffFiltAx = 0.0f, g_ffFiltAy = 0.0f, g_ffFiltAz = 0.0f;
 static uint16_t g_ffSustainedCycles = 0;
+static bool     g_ffFilterSeeded    = false;
+static float    g_ffFiltAx = 0.0f, g_ffFiltAy = 0.0f, g_ffFiltAz = 0.0f;
+
+// ── Barometer-staleness contingency state ───────────────────────────────────
+// Own IIR filter + liftoff latch: completely independent of FSM and backstop
+// state. Covers the common-mode failure where the barometer freezes mid-flight
+// (frozen last-good values are plausible, never NaN) — without it, neither the
+// FSM nor the free-fall backstop would deploy.
+static bool     g_baroStaleFilterSeeded = false;
+static float    g_bsFiltAx = 0.0f, g_bsFiltAy = 0.0f, g_bsFiltAz = 0.0f;
+static bool     g_bsLiftoffLatched = false;
+static uint16_t g_bsSustainedCycles = 0;
 
 /**
  * @brief FSM-independent free-fall detector (safety backstop)
@@ -103,6 +112,81 @@ bool checkFreefallBackstop() {
     }
   } else {
     g_ffSustainedCycles = 0;
+  }
+  return false;
+}
+
+/**
+ * @brief Barometer-staleness contingency (IMU-only, FSM-independent)
+ *
+ * Fires when the barometer has been frozen for BARO_STALE_AGE_MS while the
+ * rocket is in a sustained IMU-only free fall. The flight must have actually
+ * started (accel > LIFTOFF_ACCEL_THRESHOLD seen at least once since boot —
+ * never opens on the pad) and the last-good maxAltitude must be above the
+ * ground guard (replaces the height check while the barometer is dead).
+ *
+ * @return true once armed and a BARO_STALE_SUSTAIN_CYCLES window of
+ *         near-zero-g is confirmed; latches until reboot (one-shot via
+ *         g_parachuteActuated in the caller)
+ */
+bool checkBaroStaleContingency() {
+  if (g_bsSustainedCycles > BARO_STALE_SUSTAIN_CYCLES) {
+    return true;  // already fired, latched
+  }
+
+  // Barometer not frozen? Nothing to do (normal flight path).
+  if (g_baro->getLastReadingAgeMs() < BARO_STALE_AGE_MS) {
+    g_bsSustainedCycles = 0;
+    return false;
+  }
+
+  // Safety guards: the flight started and climbed above the ground guard
+  // (maxAltitude from the last good baro reading).
+  if (!g_bsLiftoffLatched ||
+      g_baro->getMaxAltitude() <= BARO_STALE_MIN_HEIGHT) {
+    g_bsSustainedCycles = 0;
+    return false;
+  }
+
+  float ax, ay, az;
+  g_imu->getAcceleration(&ax, &ay, &az);
+  if (!std::isfinite(ax) || !std::isfinite(ay) || !std::isfinite(az)) {
+    return false;
+  }
+
+  // Own IIR low-pass, same alpha as everywhere else (seed on first reading).
+  if (!g_baroStaleFilterSeeded) {
+    g_bsFiltAx = ax;
+    g_bsFiltAy = ay;
+    g_bsFiltAz = az;
+    g_baroStaleFilterSeeded = true;
+  } else {
+    g_bsFiltAx += FILTER_ALPHA * (ax - g_bsFiltAx);
+    g_bsFiltAy += FILTER_ALPHA * (ay - g_bsFiltAy);
+    g_bsFiltAz += FILTER_ALPHA * (az - g_bsFiltAz);
+  }
+
+  const float acc = sqrtf(g_bsFiltAx * g_bsFiltAx +
+                          g_bsFiltAy * g_bsFiltAy +
+                          g_bsFiltAz * g_bsFiltAz);
+  if (!std::isfinite(acc)) {
+    return false;
+  }
+
+  if (acc > LIFTOFF_ACCEL_THRESHOLD) {
+    g_bsLiftoffLatched = true;
+  }
+
+  if (acc < BARO_STALE_ACC_THRESHOLD) {
+    g_bsSustainedCycles++;
+    if (g_bsSustainedCycles >= BARO_STALE_SUSTAIN_CYCLES) {
+      Serial.printf("[FlightControl] CONTINGENCY: baro stale %lu ms, "
+                    "IMU-only free-fall acc=%.2f\n",
+                    (unsigned long)(g_baro->getLastReadingAgeMs()), acc);
+      return true;
+    }
+  } else {
+    g_bsSustainedCycles = 0;
   }
   return false;
 }
@@ -251,6 +335,18 @@ void taskFlightControl(void* pvParameters) {
       Serial.println("[FlightControl] BACKSTOP: parachute deployed (free-fall)");
       logMessage(TASK_ID_FLIGHT_CONTROL, LOG_LEVEL_WARN,
                  "Backstop free-fall deploy");
+    }
+
+    // 4c) Barometer-staleness contingency. Covers the common-mode failure
+    //     where the barometer freezes mid-flight: both the FSM and the
+    //     backstop depend on its vz/height, so neither would deploy.
+    if (!g_parachuteActuated && checkBaroStaleContingency()) {
+      deployParachute();
+      g_parachuteActuated = true;
+      Serial.println("[FlightControl] CONTINGENCY: parachute deployed "
+                     "(baro stale, IMU-only free-fall)");
+      logMessage(TASK_ID_FLIGHT_CONTROL, LOG_LEVEL_WARN,
+                 "Baro-stale contingency deploy");
     }
 
     // 5) Queue -> TelemetryTask

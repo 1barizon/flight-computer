@@ -1206,6 +1206,12 @@ Validação: `extras/FSM_tester/validate_freefall_backstop.py` — cenários A (
 - ✅ `setupServo(keepOpen)`: servo não é fechado no boot se o paraquedas já foi acionado
 - ✅ Novo validador `extras/FSM_tester/validate_watchdog_reboot.py` (PASS em todos os cenários: 5 fases do voo simulado + 4 do voo real)
 
+### 2026-08-05 - Revisão de riscos de voo real (5 riscos, batch de subagentes)
+- ✅ **Risco 1 (barômetro congela em voo) — resolvido**: `BMP585Sensor::getLastReadingAgeMs()` + contingência IMU-only `checkBaroStaleContingency()` no FlightControlTask: barômetro sem leitura válida por >2s + liftoff já visto (acc > 15 m/s²) + maxAltitude (último valor bom) > 50 m + acc filtrado < 3 m/s² por 2.5s → deploy. Validado em Python antes do C++ (`validate_baro_stale.py`, cenários A-D — PASS; contingência abre em t=19.6s/12.4s acima do piso, inofensiva em voo normal e em bancada)
+- ✅ **Risco 3 (apogeu perdido por ruído de vz a 50Hz) — NÃO confirmado**: novo `validate_50hz_noise.py` re-amostra os 2 datasets a 50Hz, injeta ruído de quantização do barômetro (até 20x o real) e mede: apogeu detectado em 100% dos runs, 0 deploys prematuros, 0 deploys >5s após o apogeu → nenhuma mudança de firmware necessária
+- ✅ **Risco 5 (bamboleio pós-burnout impede apogeu) — resolvido**: análise `analyze_apogee_robustness.py` confirmou o risco no voo real (gate de az tinha margem de apenas ~0.81 m/s²; perdia o apogeu com >=1.1 m/s² de bamboleio pendular). **Gate de az removido**: `detectApogee()` agora é só `|vz| < 1.0` (config.h `APOGEE_MAX_VZ`) — vz vem do barômetro, imune ao bamboleio por construção. Portas Python dos 3 validadores atualizadas; varredura pós-mudança: imune até >20 m/s² em todas as frequências. Follow-up: investigar calibração do acelerômetro do voo real (az em repouso +2.81 m/s²)
+- ✅ Subagentes deixaram diffs sem commit; revisão, validação e commits centralizados
+
 ### 2026-03-18 - Planejamento Completo (v1.0)
 - ✅ Arquitetura definida (POO + FreeRTOS + FSM)
 - ✅ Decisões técnicas tomadas

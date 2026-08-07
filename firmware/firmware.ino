@@ -89,6 +89,14 @@ void setup() {
   Wire.begin(I2C_SDA, I2C_SCL);
   pinMode(BUZZER_PIN, OUTPUT);
 
+  // Configure the SPI bus up front (LoRa pins SCK=4/MISO=2/MOSI=3).
+  // initTelemetryTask() calls setupStorage() (SD.begin) BEFORE setupLoRa(),
+  // and SD.begin uses the global SPI object — without this early SPI.begin(),
+  // the SD card is probed on the ESP32-S3 default SPI pins and always falls
+  // back to LittleFS. setupLoRa() re-issues SPI.begin() with the same pins
+  // (idempotent).
+  SPI.begin(LORA_SCK, LORA_MISO, LORA_MOSI, SS_LORA);
+
   bool initOk = true;
   String initFail = "";
 

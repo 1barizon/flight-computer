@@ -27,26 +27,30 @@
 #define LORA_FREQ 915E6
 
 /**
- * Slave Select (SS/CS) pin for SPI communication with LoRa module (RFM95W)
+ * SPI bus pins shared between LoRa (RFM95W) and SD card.
+ * Wired on the ESP32-S3-DEVKITC-1-N8R8 schematic (2026-08):
+ *   SCK  = GPIO12, MISO = GPIO13, MOSI = GPIO11, CS_LORA = GPIO10
  * @note The LoRa 0.8.0 library uses the global SPI object. We remap the SPI
  *       bus to these pins via SPI.begin(SCK, MISO, MOSI, SS) in setupLoRa()
  *       (same approach as the receiver-lora firmware, which compiles/runs
  *       clean). Only CS/RST/DIO0 are passed to LoRa.setPins().
  */
-#define LORA_SCK  4
-#define LORA_MISO 2
-#define LORA_MOSI 3
-#define SS_LORA 5
+#define LORA_SCK  12
+#define LORA_MISO 13
+#define LORA_MOSI 11
+#define SS_LORA 10
 
 /**
- * Reset pin for LoRa module
+ * Reset pin for LoRa module (RFM95W).
+ * Schematic: GPIO4 on ESP32-S3-DEVKITC-1-N8R8.
  */
-#define RST_LORA 6
+#define RST_LORA 4
 
 /**
- * DIO0 pin of LoRa module (IRQ / interrupt)
+ * DIO0 pin of LoRa module (IRQ / interrupt).
+ * Schematic: GPIO5 on ESP32-S3-DEVKITC-1-N8R8.
  */
-#define DIO0_LORA 7
+#define DIO0_LORA 5
 
 /**
  * Synchronization word for LoRa communication
@@ -69,12 +73,12 @@
 //==============================================================================
 
 /**
- * Chip Select pin for SD card module
- * Shares the SPI bus with LoRa (SCK=4, MISO=2, MOSI=3).
- * GPIO 12 is free on ESP32-C3 SuperMini (not used by I2C, UART, or LoRa).
+ * Chip Select pin for SD card module.
+ * Shares the SPI bus with LoRa (SCK=12, MISO=13, MOSI=11, CS_LORA=10).
+ * Schematic: GPIO14 on ESP32-S3-DEVKITC-1-N8R8.
  * @note If SD fails, data is saved to LittleFS (internal flash) automatically.
  */
-#define SD_CS_PIN 12
+#define SD_CS_PIN 14
 
 /**
  * Flush file buffer every N samples when using SD card
@@ -87,20 +91,21 @@ static constexpr uint8_t FLUSH_EVERY_N = 10;
 //==============================================================================
 
 /**
- * Digital pin connected to parachute servo motor
+ * Digital pin connected to parachute servo motor.
  * Uses PWM to control servo position.
- * @note GPIO 10 — free on ESP32-S3 (not a strap, not used by SPI/I2C/LoRa/GPS).
- *       Adjust to match the final schematic.
+ * Schematic: GPIO7 on ESP32-S3-DEVKITC-1-N8R8.
+ * @note Two servo footprints (M1, M2) on the schematic share this same PWM
+ *       signal — confirm with the assembler whether the build uses one or both.
  */
-#define SERVO_PIN 10
+#define SERVO_PIN 7
 
 /**
- * Digital pin connected to piezoelectric buzzer
+ * Digital pin connected to piezoelectric buzzer.
  * Emits sound signals for status indication.
- * @note GPIO 11 — free on ESP32-S3 (not a strap, not used by SPI/I2C/LoRa/GPS).
- *       Avoid GPIO0 (boot strap). Adjust to match the final schematic.
+ * Schematic: GPIO6 on ESP32-S3-DEVKITC-1-N8R8.
+ * @note Avoid GPIO0 (boot strap).
  */
-#define BUZZER_PIN 11
+#define BUZZER_PIN 6
 
 //==============================================================================
 // PIN DEFINITIONS - I2C (SENSORS: BMP585 barometer, LSM6DS3 IMU)
@@ -125,16 +130,18 @@ static constexpr uint8_t FLUSH_EVERY_N = 10;
 //==============================================================================
 
 /**
- * RX pin for serial communication with GPS module
- * Connects to GPS module TX
+ * RX pin for serial communication with GPS module.
+ * Connects to GPS module TX.
+ * Schematic: GPIO18 on ESP32-S3-DEVKITC-1-N8R8.
  */
-#define RX_GPS 20
+#define RX_GPS 18
 
 /**
- * TX pin for serial communication with GPS module
- * Connects to GPS module RX
+ * TX pin for serial communication with GPS module.
+ * Connects to GPS module RX.
+ * Schematic: GPIO17 on ESP32-S3-DEVKITC-1-N8R8.
  */
-#define TX_GPS 21
+#define TX_GPS 17
 
 //==============================================================================
 // PARACHUTE CONTROL CONSTANTS

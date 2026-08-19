@@ -3977,6 +3977,16 @@
 	)
 	(wire
 		(pts
+			(xy 67.31 124.46) (xy 66.04 124.46)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "1f3c3ff3-9849-44f5-9315-c812af7cf15a")
+	)
+	(wire
+		(pts
 			(xy 43.18 53.34) (xy 44.45 53.34)
 		)
 		(stroke
@@ -4054,6 +4064,16 @@
 			(type default)
 		)
 		(uuid "2f1775e1-6741-4343-a819-09c5bb92b2fd")
+	)
+	(wire
+		(pts
+			(xy 67.31 121.92) (xy 66.04 121.92)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "2f56b8c9-43d3-4c5d-93eb-d90f7ecd478e")
 	)
 	(wire
 		(pts
@@ -4174,6 +4194,16 @@
 			(type default)
 		)
 		(uuid "770983d8-250f-41aa-a085-72b8774ef715")
+	)
+	(wire
+		(pts
+			(xy 40.64 124.46) (xy 41.91 124.46)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "7a2782d7-9d41-4344-951d-e3f3b0c23fae")
 	)
 	(wire
 		(pts
@@ -4437,6 +4467,16 @@
 	)
 	(wire
 		(pts
+			(xy 40.64 121.92) (xy 41.91 121.92)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "cb005304-9db8-4671-a16c-3233b8439576")
+	)
+	(wire
+		(pts
 			(xy 193.04 77.47) (xy 194.31 77.47)
 		)
 		(stroke
@@ -4595,6 +4635,16 @@
 		)
 		(uuid "ff3c6945-32e7-4506-b412-007123bf87fb")
 	)
+	(label "5 VCC SERVO"
+		(at 67.31 124.46 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "01a23bbd-e0bc-4167-bf43-fc5aed32aeea")
+	)
 	(label "LORA_DIO0"
 		(at 71.12 63.5 0)
 		(effects
@@ -4634,6 +4684,16 @@
 			(justify right bottom)
 		)
 		(uuid "101b778c-fd10-4f7b-ad70-3763304fcaf9")
+	)
+	(label "GND"
+		(at 67.31 121.92 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "16b2ab10-3b01-4032-b8c7-861494533880")
 	)
 	(label "SDA"
 		(at 226.06 36.83 0)
@@ -4775,6 +4835,16 @@
 		)
 		(uuid "4b84362a-6dab-446d-929a-f9a4354c5947")
 	)
+	(label "BAT+"
+		(at 40.64 124.46 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right bottom)
+		)
+		(uuid "4bfb4418-b472-450e-ba9c-e1154b6820a8")
+	)
 	(label "3.3 VCC"
 		(at 193.04 80.01 180)
 		(effects
@@ -4864,6 +4934,16 @@
 			(justify left bottom)
 		)
 		(uuid "660b3ff3-e894-461e-a579-f38389b4cee1")
+	)
+	(label "GND_IN"
+		(at 40.64 121.92 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right bottom)
+		)
+		(uuid "6b449d6f-ebdd-48bf-bbda-dabfe86c7da4")
 	)
 	(label "MISO"
 		(at 43.18 50.8 180)
@@ -5105,7 +5185,7 @@
 		)
 		(uuid "be8ffa1f-31e3-495a-96a1-533325336594")
 	)
-	(label "5 VCC"
+	(label "5 VCC SERVO"
 		(at 111.76 115.57 180)
 		(effects
 			(font
@@ -5135,7 +5215,7 @@
 		)
 		(uuid "d0177948-0373-468d-97b6-704c6756e42b")
 	)
-	(label "5 VCC"
+	(label "5 VCC SERVO"
 		(at 146.05 115.57 180)
 		(effects
 			(font
@@ -6431,7 +6511,7 @@
 				(justify right)
 			)
 		)
-		(property "Footprint" "electronics:GPS N8M"
+		(property "Footprint" ""
 			(at 227.33 73.66 0)
 			(hide yes)
 			(show_name no)
@@ -6796,6 +6876,91 @@
 			(project "electronics"
 				(path "/c41d3284-e01f-46f3-b369-f3e7cf1df810"
 					(reference "U3")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "custom_lib:Mini_360")
+		(at 53.34 120.65 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "f6f03a7c-f6c6-4724-869f-7605c226afba")
+		(property "Reference" "U8"
+			(at 53.594 116.332 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "MINI 560 STEP DOWN"
+			(at 53.848 118.618 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "electronics:STEP DOWN MINI 560"
+			(at 53.34 120.65 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 53.34 120.65 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" ""
+			(at 53.34 120.65 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "85a183ac-7396-4b63-bb5c-b36fff2910da")
+		)
+		(pin "2"
+			(uuid "499ef53b-d843-444e-82a9-3c6e2a02c6de")
+		)
+		(pin "3"
+			(uuid "90243467-57ca-4f95-a1b7-82c0401a7e9b")
+		)
+		(pin "4"
+			(uuid "dd2b3d03-8ac6-4f4f-918c-bf3fc86dc226")
+		)
+		(instances
+			(project "electronics"
+				(path "/c41d3284-e01f-46f3-b369-f3e7cf1df810"
+					(reference "U8")
 					(unit 1)
 				)
 			)

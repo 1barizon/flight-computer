@@ -107,6 +107,14 @@ static constexpr uint8_t FLUSH_EVERY_N = 10;
  */
 #define BUZZER_PIN 6
 
+/**
+ * Tone frequency for the passive piezo buzzer (Hz).
+ * @note Bench resonance sweep (test/bench `z`, 2026-08-27): loudest point
+ *       of the 2.0-4.0 kHz scan. The piezo is PASSIVE — drive with tone()/
+ *       LEDC square wave; digitalWrite DC produces no sound.
+ */
+#define BUZZER_TONE_HZ 2700
+
 //==============================================================================
 // PIN DEFINITIONS - I2C (SENSORS: BMP585 barometer, LSM6DS3 IMU)
 //==============================================================================

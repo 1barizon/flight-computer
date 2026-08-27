@@ -33,18 +33,22 @@
  * - "Success": 3 beeps (100ms each, 200ms interval) - indicates successful initialization
  * - "Activated": Single long beep (500ms) - indicates parachute deployment
  * - "Beep": Short beep (50ms) - standard operation confirmation
- * 
+ *
  * @param signal Signal type string: "Alert", "Success", "Activated", or "Beep"
- * 
- * @note All signals use 500Hz frequency for consistency
+ *
+ * @note Frequency 2700 Hz: passive piezo resonance found in bench sweep
+ *       (test/bench `z`, 2026-08-27) — loudest point in the 2.0-4.0 kHz scan.
+ * @note tone() uses the ESP32 LEDC peripheral (core 3.x maps it to ledcWriteTone);
+ *       a passive piezo REQUIRES the square wave — DC via digitalWrite makes
+ *       no sound.
  * @note The function blocks during tone generation due to delay() calls
  * @warning Invalid signal types will print an error message to Serial
- * 
- * @see BUZZER_PIN is defined in config.h
+ *
+ * @see BUZZER_PIN, BUZZER_TONE_HZ in config.h
  */
 inline void buzzSignal(String signal)
 {
-  int frequency = 500;   // Tone frequency in Hz (500Hz chosen for audibility)
+  const int frequency = BUZZER_TONE_HZ;  // 2700 Hz passive-piezo resonance
   
   if (signal == "Alert") // Error signal during initialization
   {

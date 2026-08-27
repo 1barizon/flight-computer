@@ -58,8 +58,8 @@
 #define TX_GPS 18
 #define SERVO_PIN 7
 #define BUZZER_PIN 6
-const int SERVO_OPEN = 0;
-const int SERVO_CLOSED = 90;
+const int SERVO_CLOSED = 50;  // door held closed (was 90; bench-set 2026-08-27)
+const int SERVO_EJECT = 135;  // parachute ejection position
 static const int GPS_BAUD = 9600;
 
 // ---- fixtures ---------------------------------------------------------------
@@ -302,8 +302,9 @@ void testFs() {
 
 // ------------------------------------------------------------------- servo
 void testServo() {
-  header("SERVO (parachute door, GPIO7 — ACTUATOR WILL MOVE)");
-  Serial.println("  WARNING: servo sweeps CLOSED->OPEN->CLOSED");
+  header("SERVO (parachute ejection, GPIO7 — ACTUATOR WILL MOVE)");
+  Serial.println("  Angles: CLOSED=50 (held), EJECT=135 (parachute out)");
+  Serial.println("  WARNING: door will EJECT the parachute — clear the area!");
   ESP32PWM::allocateTimer(0);
   ESP32PWM::allocateTimer(1);
   ESP32PWM::allocateTimer(2);
@@ -312,36 +313,60 @@ void testServo() {
   verdict("servo attach(GPIO7)", attached);
   if (!attached) return;
 
+  // Start CLOSED (50) so the test always begins from the held position
+  Serial.println("  start: CLOSED (50)...");
+  benchServo.write(SERVO_CLOSED);
+  delay(1500);  // generous settle so the horn definitely reaches 50
+
   for (int rep = 1; rep <= 3; rep++) {
-    Serial.printf("  rep %d: CLOSE\n", rep);
-    benchServo.write(SERVO_CLOSED);
-    delay(800);
-    Serial.printf("  rep %d: OPEN\n", rep);
+    Serial.printf("  rep %d: CLOSED (50) — ready\n", rep);
+    delay(1000);
+    Serial.printf("  rep %d: EJECT (135)!\n", rep);
     uint32_t t0 = millis();
-    benchServo.write(SERVO_OPEN);
+    benchServo.write(SERVO_EJECT);
+    delay(1500);
+    Serial.printf("  rep %d: eject command round-trip %lu ms\n", rep, millis() - t0);
+    Serial.printf("  rep %d: return CLOSED (50)\n", rep);
+    benchServo.write(SERVO_CLOSED);
     delay(1200);
-    Serial.printf("  rep %d: open command round-trip %lu ms\n", rep, millis() - t0);
   }
   benchServo.write(SERVO_CLOSED);
   delay(800);
   benchServo.detach();
-  Serial.println("  3 sweeps done — visually confirm door opened/closed each time.");
+  Serial.println("  3 ejection cycles done — visually confirm the chute ejected");
+  Serial.println("  and the door re-seated closed each time.");
   Serial.println("  (mechanical verdict is manual; timing stats above)");
 }
 
 // ------------------------------------------------------------------ buzzer
+// Piezo is PASSIVE: it needs a square wave (~2-4 kHz), not DC. Driven via
+// LEDC PWM through a PN2222A (220 ohm base resistor).
+#define BUZZER_TONE_HZ 2700
+
 void testBuzzer() {
-  header("BUZZER (GPIO6)");
-  pinMode(BUZZER_PIN, OUTPUT);
-  Serial.println("  beeping 3x (400ms on / 200ms off)...");
+  header("BUZZER (passive piezo, GPIO6 via PN2222A)");
+  Serial.printf("  PWM %d Hz...\n", BUZZER_TONE_HZ);
+  ledcAttach(BUZZER_PIN, BUZZER_TONE_HZ, 10);  // core 3.x API: pin, freq, resolution
+  Serial.println("  3 tones (400ms on / 200ms off)...");
   for (int i = 0; i < 3; i++) {
-    digitalWrite(BUZZER_PIN, HIGH);
+    ledcWriteTone(BUZZER_PIN, BUZZER_TONE_HZ);
     delay(400);
-    digitalWrite(BUZZER_PIN, LOW);
+    ledcWriteTone(BUZZER_PIN, 0);
     delay(200);
   }
-  Serial.println("  (audible verdict is manual: 3 beeps = PASS)");
-  verdict("buzzer sequence executed", true);
+  // frequency sweep so you can find the resonant frequency (loudest point)
+  Serial.println("  resonance sweep 2.0-4.0 kHz (note the loudest freq):");
+  for (uint32_t f = 2000; f <= 4000; f += 250) {
+    Serial.printf("    %lu Hz...", f);
+    ledcWriteTone(BUZZER_PIN, f);
+    delay(350);
+    ledcWriteTone(BUZZER_PIN, 0);
+    delay(150);
+    Serial.println();
+  }
+  ledcDetach(BUZZER_PIN);
+  Serial.println("  (audible verdict is manual: 3 tones + sweep = PASS)");
+  verdict("buzzer PWM sequence executed", true);
 }
 
 // --------------------------------------------------------------------- all

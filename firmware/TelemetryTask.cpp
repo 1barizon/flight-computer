@@ -197,7 +197,18 @@ void taskTelemetry(void* pvParameters) {
       // 3) Multi-channel fan-out
       Serial.println(formatForSerial(data));
       sendLoRa(telemetry);
-      appendFile(file_dir, telemetry);
+
+      // Flash writes disable the flash cache on BOTH cores; while it lasts,
+      // the I2C transaction inside taskFlightControl (Core 1) stalls and the
+      // esp_driver_i2c spinlock can time out -> panic (bench crash 2026-08-27).
+      // Writing at full 5 Hz made this near-certain within ~13 s. 1 Hz keeps
+      // the log useful for post-flight reconstruction while drastically
+      // reducing cache-off windows. LoRa TX still runs at 5 Hz.
+      static uint8_t flashWriteDivider = 0;
+      if (++flashWriteDivider >= 5) {  // 5 Hz task -> 1 Hz flash write
+        flashWriteDivider = 0;
+        appendFile(file_dir, telemetry);
+      }
 
       g_stats.packetsSent++;
     } else {

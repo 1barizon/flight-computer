@@ -27,20 +27,26 @@ LoRa communication module.
 **Used Pins** (from `firmware/config.h`):
 
 ```
-GPIO 4  → LORA_SCK   (LoRa SPI Clock)
-GPIO 2  → LORA_MISO  (LoRa SPI MISO)
-GPIO 3  → LORA_MOSI  (LoRa SPI MOSI)
-GPIO 5  → SS_LORA    (LoRa Chip Select)
-GPIO 6  → RST_LORA   (LoRa Reset)
-GPIO 7  → DIO0_LORA  (LoRa Interrupt / TX-RX done)
-GPIO 8  → I2C_SDA    (BMP585 + LSM6DS3)
-GPIO 9  → I2C_SCL    (BMP585 + LSM6DS3)
-GPIO 10 → SERVO_PIN  (Parachute servo PWM)
-GPIO 11 → BUZZER_PIN
-GPIO 12 → SD_CS_PIN  (SD Card Chip Select)
-GPIO 20 → RX_GPS     (UART RX — GPS TX)
-GPIO 21 → TX_GPS     (UART TX — GPS RX)
+GPIO 4  → RST_LORA   (LoRa Reset)
+GPIO 5  → DIO0_LORA  (LoRa Interrupt / TX-RX done)
+GPIO 6  → BUZZER_PIN
+GPIO 7  → SERVO_PIN  (Parachute servo PWM)
+GPIO 8  → I2C_SDA    (BMP585/BMP280 + LSM6DS3)
+GPIO 9  → I2C_SCL    (BMP585/BMP280 + LSM6DS3)
+GPIO 10 → SS_LORA    (LoRa Chip Select)
+GPIO 11 → LORA_MOSI  (LoRa SPI MOSI)
+GPIO 12 → LORA_SCK   (LoRa SPI Clock)
+GPIO 13 → LORA_MISO  (LoRa SPI MISO)
+GPIO 14 → SD_CS_PIN  (SD Card Chip Select)
+GPIO 17 → RX_GPS     (UART RX — GPS TX)  ⚠ bench-measured 2026-08-27, see note
+GPIO 18 → TX_GPS     (UART TX — GPS RX)  ⚠ bench-measured 2026-08-27, see note
 ```
+
+> **GPS pinout note (2026-08-27 bench measurement):** the GPS TX line
+> physically arrives on GPIO17, not GPIO18 as previously documented from the
+> schematic. `config.h` was corrected (RX_GPS=17, TX_GPS=18) and validated on
+> hardware: NMEA at 9600 baud, 11 satellites, 3D fix. Always trust the raw
+> sniffer (`test/gps_diag/`) over the schematic comment when they disagree.
 
 **Power Supply**: 3.3V nominal (regulated by LM2596).
 
@@ -56,7 +62,10 @@ GPIO 21 → TX_GPS     (UART TX — GPS RX)
 - **Relative Accuracy**: ±0.06 hPa (typ.)
 - **Absolute Accuracy**: ±0.5 hPa (typ.)
 - **Interface**: I2C
-- **I2C Address**: 0x77 (default, as used in `BMP585Sensor`)
+- **I2C Address**: 0x7E (bench-measured 2026-08-27; factory default is 0x76/0x77
+  selected by CSB). **Fallback**: if the BMP585 is absent, the driver
+  (`BMP585Sensor`) falls back to a **BMP280** at 0x76/0x77 — same satellite
+  pattern (`BME280Sensor.cpp` in the #213 repo).
 
 **Pinout**:
 
@@ -78,7 +87,7 @@ GPIO 21 → TX_GPS     (UART TX — GPS RX)
 - **Accelerometer**: ±2, ±4, ±8, ±16 g (configurable)
 - **Gyroscope**: ±125, ±250, ±500, ±1000, ±2000 °/s
 - **Interface**: I2C
-- **I2C Address**: 0x6A (default)
+- **I2C Address**: 0x6B (bench-measured 2026-08-27; SDO strap selects 0x6A/0x6B)
 
 **Pinout**:
 

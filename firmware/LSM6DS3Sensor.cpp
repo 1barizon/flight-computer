@@ -8,6 +8,7 @@
  */
 
 #include "sensors/LSM6DS3Sensor.h"
+#include "config.h"
 #include <cmath>
 
 /**
@@ -32,11 +33,18 @@ LSM6DS3Sensor::LSM6DS3Sensor()
  * @note Blocking: performs initial sensor read
  */
 bool LSM6DS3Sensor::begin() {
-	if (!_lsm.begin_I2C()) {
+	Serial.println("[IMU] calling begin_I2C...");
+	// Raw bus sanity check right before the lib call
+	Wire.beginTransmission(I2C_ADDR_LSM6DS3);
+	int rawTx = Wire.endTransmission();
+	Serial.printf("[IMU] raw probe 0x%02X endTx=%d\n", I2C_ADDR_LSM6DS3, rawTx);
+
+	if (!_lsm.begin_I2C(I2C_ADDR_LSM6DS3, &Wire)) {
 		Serial.println("LSM6DS3 initialization failed.");
 		_ready = false;
 		return false;
 	}
+	Serial.println("[IMU] begin_I2C OK, first getEvent...");
 
 	sensors_event_t accel_event;
 	sensors_event_t gyro_event;

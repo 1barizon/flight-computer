@@ -50,7 +50,7 @@ public:
   }
 
 private:
-  Adafruit_LSM6DS _lsm;
+  Adafruit_LSM6DS3 _lsm;
   bool _ready;
   float _accelX, _accelY, _accelZ;
   float _gyroX, _gyroY, _gyroZ;

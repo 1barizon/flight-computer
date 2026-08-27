@@ -309,7 +309,9 @@ bool initFlightControlTask() {
   g_baro = new BMP585Sensor();
   g_imu  = new LSM6DS3Sensor();
 
-  if (!g_baro->begin() || !g_imu->begin()) {
+  // IMU first: bench bring-up showed the LSM6DS3 must init before the
+  // BMP280 fallback driver configures the bus (order validated 2026-08-27).
+  if (!g_imu->begin() || !g_baro->begin()) {
     Serial.println("[FlightControl] FATAL: sensor initialization failed");
     return false;
   }

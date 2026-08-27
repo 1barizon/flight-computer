@@ -125,6 +125,27 @@ static constexpr uint8_t FLUSH_EVERY_N = 10;
  */
 #define I2C_SCL 9
 
+/**
+ * I2C 7-bit address of the LSM6DS3 IMU.
+ * Bench-measured via brute-force I2C scan (2026-08-27): responds at 0x6B
+ * (the LSM6DS3 alternates 0x6A/0x6B depending on the SDO/SA0 strap).
+ */
+#define I2C_ADDR_LSM6DS3 0x6B
+
+/**
+ * I2C 7-bit address of the BMP585 barometer.
+ * Bench-measured via brute-force I2C scan (2026-08-27): responds at 0x7E
+ * (non-default; the BMP58x factory default is 0x76/0x77 selected by CSB).
+ */
+#define I2C_ADDR_BMP585 0x7E
+
+/**
+ * BMP280 fallback addresses (strap-selected: SDO low = 0x76, high = 0x77).
+ * Used only when the BMP585 is not found at I2C_ADDR_BMP585.
+ */
+#define I2C_ADDR_BMP280_PRIMARY 0x76
+#define I2C_ADDR_BMP280_ALT 0x77
+
 //==============================================================================
 // PIN DEFINITIONS - GPS
 //==============================================================================
@@ -132,16 +153,17 @@ static constexpr uint8_t FLUSH_EVERY_N = 10;
 /**
  * RX pin for serial communication with GPS module.
  * Connects to GPS module TX.
- * Schematic: GPIO18 on ESP32-S3-DEVKITC-1-N8R8.
+ * Bench-measured 2026-08-27 (test/gps_diag raw sniffer): the GPS TX line
+ * physically arrives on GPIO17 (NMEA at 9600 confirmed), NOT on GPIO18 as
+ * the schematic comment said. Swapped with TX_GPS accordingly.
  */
-#define RX_GPS 18
+#define RX_GPS 17
 
 /**
  * TX pin for serial communication with GPS module.
- * Connects to GPS module RX.
- * Schematic: GPIO17 on ESP32-S3-DEVKITC-1-N8R8.
+ * Connects to GPS module RX (bench: the remaining GPS line is on GPIO18).
  */
-#define TX_GPS 17
+#define TX_GPS 18
 
 //==============================================================================
 // PARACHUTE CONTROL CONSTANTS

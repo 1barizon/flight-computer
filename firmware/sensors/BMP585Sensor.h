@@ -11,6 +11,7 @@
 
 #include "ISensor.h"
 #include <Adafruit_BMP5xx.h>
+#include <Adafruit_BMP280.h>
 #include <Arduino.h>
 
 /**
@@ -19,6 +20,10 @@
  * Implements ISensor interface for BMP585 barometric sensor.
  * Calculates altitude using barometric formula and computes
  * vertical velocity via numerical differentiation.
+ *
+ * Fallback (mirrors satellite/src/sensors/BME280Sensor.cpp pattern):
+ * if the BMP585 is not found, tries Adafruit_BMP280 at 0x76 and 0x77
+ * (pressure/temperature only). UseBMP585() selects the active backend.
  */
 class BMP585Sensor : public ISensor {
 public:
@@ -36,6 +41,9 @@ public:
   float getTemperature() const;
   float getMaxAltitude() const;
   float getVerticalVelocity() const;
+
+  /** @brief true if the primary BMP585 backend is active (not the BMP280 fallback) */
+  bool useBMP585() const { return _useBMP585; }
 
   /**
    * @brief Age (ms) of the last valid barometer reading
@@ -73,7 +81,11 @@ public:
   float getBasePressure() const;
 
 private:
+  bool _firstReading();
+
   Adafruit_BMP5xx _bmp;
+  Adafruit_BMP280 _bmp280;  // fallback backend (BMP585 missing)
+  bool _useBMP585;
   bool _ready;
   float _basePressure;
   float _altitude;

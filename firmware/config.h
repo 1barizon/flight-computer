@@ -178,16 +178,18 @@ static constexpr uint8_t FLUSH_EVERY_N = 10;
 //==============================================================================
 
 /**
- * Servo position: parachute open
- * Value in degrees: 0° = fully open
+ * Servo position: parachute EJECTED (deploy actuation)
+ * @note Bench-validated 2026-08-27 (test/bench `s`, physical ejection test):
+ *       135° ejects the parachute; the test starts at SERVO_CLOSED (50).
  */
-const int SERVO_OPEN = 0;
+const int SERVO_OPEN = 135;
 
 /**
- * Servo position: parachute closed
- * Value in degrees: 90° = fully closed
+ * Servo position: door held closed (parachute retained)
+ * @note Bench-validated 2026-08-27. Firmware keeps the servo at this
+ *       position from boot until apogee deploy.
  */
-const int SERVO_CLOSED = 90;
+const int SERVO_CLOSED = 50;
 
 //==============================================================================
 // TEAM IDENTIFICATION

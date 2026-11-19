@@ -1,0 +1,410 @@
+{
+  "extras/FSM_tester/FSM_Tester.py": {
+    "mtime": 1794968521.601836,
+    "seen": 1795025734.347228,
+    "ast_hash": "3b4718dca1df0066e38acc36c250e310",
+    "semantic_hash": "3b4718dca1df0066e38acc36c250e310"
+  },
+  "extras/FSM_tester/analyze_apogee_robustness.py": {
+    "mtime": 1794968521.607836,
+    "seen": 1795025734.3472338,
+    "ast_hash": "ed41eba6776a0ebf7452e39acfc08596",
+    "semantic_hash": "ed41eba6776a0ebf7452e39acfc08596"
+  },
+  "extras/FSM_tester/analyze_freefall_window.py": {
+    "mtime": 1794968521.607836,
+    "seen": 1795025734.3472366,
+    "ast_hash": "53eabdf977e7b3c976c132441355ee60",
+    "semantic_hash": "53eabdf977e7b3c976c132441355ee60"
+  },
+  "extras/FSM_tester/analyze_servo_open_times.py": {
+    "mtime": 1794968521.607836,
+    "seen": 1795025734.347238,
+    "ast_hash": "6057709edc2bc73b48db29b9147a298b",
+    "semantic_hash": "6057709edc2bc73b48db29b9147a298b"
+  },
+  "extras/FSM_tester/flight_inserter.py": {
+    "mtime": 1794968521.608836,
+    "seen": 1795025734.3472395,
+    "ast_hash": "43c9a9ff3ebabb3abcf8cd0095bbd7ad",
+    "semantic_hash": "43c9a9ff3ebabb3abcf8cd0095bbd7ad"
+  },
+  "extras/FSM_tester/validate_50hz_noise.py": {
+    "mtime": 1794968521.6098359,
+    "seen": 1795025734.3472404,
+    "ast_hash": "a3d896bc24a7f697a5a0199889127f08",
+    "semantic_hash": "a3d896bc24a7f697a5a0199889127f08"
+  },
+  "extras/FSM_tester/validate_arming.py": {
+    "mtime": 1794968521.6098359,
+    "seen": 1795025734.3472419,
+    "ast_hash": "66f2b248f001827ec82b8ea1be626d4e",
+    "semantic_hash": "66f2b248f001827ec82b8ea1be626d4e"
+  },
+  "extras/FSM_tester/validate_baro_stale.py": {
+    "mtime": 1794968521.6098359,
+    "seen": 1795025734.347243,
+    "ast_hash": "76c7e24a184576efa94b5b8655a432ce",
+    "semantic_hash": "76c7e24a184576efa94b5b8655a432ce"
+  },
+  "extras/FSM_tester/validate_freefall_backstop.py": {
+    "mtime": 1794968521.6098359,
+    "seen": 1795025734.3472443,
+    "ast_hash": "6d334ec75e284ec57359882c4546405b",
+    "semantic_hash": "6d334ec75e284ec57359882c4546405b"
+  },
+  "extras/FSM_tester/validate_fsm_5hz.py": {
+    "mtime": 1794968521.6098359,
+    "seen": 1795025734.3472452,
+    "ast_hash": "e2f3e29f3a487f4d05e26e1475f2a2c8",
+    "semantic_hash": "e2f3e29f3a487f4d05e26e1475f2a2c8"
+  },
+  "extras/FSM_tester/validate_glitch_corrections.py": {
+    "mtime": 1794968521.610836,
+    "seen": 1795025734.3472464,
+    "ast_hash": "3d04590d4d4c612ec8ad287048bcdbab",
+    "semantic_hash": "3d04590d4d4c612ec8ad287048bcdbab"
+  },
+  "extras/FSM_tester/validate_liftoff_confirm.py": {
+    "mtime": 1794968521.610836,
+    "seen": 1795025734.3472478,
+    "ast_hash": "e313b6ccaa325686f840273a083ad84c",
+    "semantic_hash": "e313b6ccaa325686f840273a083ad84c"
+  },
+  "extras/FSM_tester/validate_parachute_option_a.py": {
+    "mtime": 1794968521.610836,
+    "seen": 1795025734.3472488,
+    "ast_hash": "b5cea76ee7e5ff20f74ac743ea6d1405",
+    "semantic_hash": "b5cea76ee7e5ff20f74ac743ea6d1405"
+  },
+  "extras/FSM_tester/validate_parachute_realflight.py": {
+    "mtime": 1794968521.610836,
+    "seen": 1795025734.34725,
+    "ast_hash": "aec18fb1fa273e9a0dc33260039c24ab",
+    "semantic_hash": "aec18fb1fa273e9a0dc33260039c24ab"
+  },
+  "extras/FSM_tester/validate_watchdog_reboot.py": {
+    "mtime": 1794968521.610836,
+    "seen": 1795025734.347251,
+    "ast_hash": "b2371f98b32c86ecbd82efb9ddea84fb",
+    "semantic_hash": "b2371f98b32c86ecbd82efb9ddea84fb"
+  },
+  "extras/validate_telemetry_format.py": {
+    "mtime": 1794968521.612441,
+    "seen": 1795025734.3472521,
+    "ast_hash": "00d4a00d23583f2a3bbdb68d3426fb54",
+    "semantic_hash": "00d4a00d23583f2a3bbdb68d3426fb54"
+  },
+  "firmware/BMP585Sensor.cpp": {
+    "mtime": 1794968521.6128953,
+    "seen": 1795025734.3472533,
+    "ast_hash": "87c3c921a86b9485c97f37a6974815fe",
+    "semantic_hash": "87c3c921a86b9485c97f37a6974815fe"
+  },
+  "firmware/FlightControlTask.cpp": {
+    "mtime": 1794968521.6128953,
+    "seen": 1795025734.3472543,
+    "ast_hash": "eb6d4f9140f0158b119852b3d291ed56",
+    "semantic_hash": "eb6d4f9140f0158b119852b3d291ed56"
+  },
+  "firmware/FlightStateMachine.cpp": {
+    "mtime": 1794968521.6128953,
+    "seen": 1795025734.3472552,
+    "ast_hash": "e777249666166ee626623d0f3f279e1f",
+    "semantic_hash": "e777249666166ee626623d0f3f279e1f"
+  },
+  "firmware/GPSModule.cpp": {
+    "mtime": 1794968521.6128953,
+    "seen": 1795025734.3472564,
+    "ast_hash": "3f10fbfce853a7fa3e2752890f0c4535",
+    "semantic_hash": "3f10fbfce853a7fa3e2752890f0c4535"
+  },
+  "firmware/LSM6DS3Sensor.cpp": {
+    "mtime": 1794968521.6128953,
+    "seen": 1795025734.3472576,
+    "ast_hash": "07c72f9cc1e1193f79a6de29e7fd408a",
+    "semantic_hash": "07c72f9cc1e1193f79a6de29e7fd408a"
+  },
+  "firmware/LoggerTask.cpp": {
+    "mtime": 1794968521.6128953,
+    "seen": 1795025734.3472586,
+    "ast_hash": "767ce43f6596d61656db51856c749ba7",
+    "semantic_hash": "767ce43f6596d61656db51856c749ba7"
+  },
+  "firmware/TelemetryTask.cpp": {
+    "mtime": 1794968521.6128953,
+    "seen": 1795025734.34726,
+    "ast_hash": "3263a6d393bdfbbef73b29d140881bf2",
+    "semantic_hash": "3263a6d393bdfbbef73b29d140881bf2"
+  },
+  "firmware/config.cpp": {
+    "mtime": 1794968521.6128953,
+    "seen": 1795025734.3472612,
+    "ast_hash": "1440a4354318a575cc1919b069dc8e7c",
+    "semantic_hash": "1440a4354318a575cc1919b069dc8e7c"
+  },
+  "firmware/config.h": {
+    "mtime": 1794968521.6128953,
+    "seen": 1795025734.3472621,
+    "ast_hash": "74b1585da74aeba3824ee2511770f58a",
+    "semantic_hash": "74b1585da74aeba3824ee2511770f58a"
+  },
+  "firmware/flight/FlightControlTask.h": {
+    "mtime": 1794968521.6128953,
+    "seen": 1795025734.3472633,
+    "ast_hash": "25b021b9dc18ad4d96f9b9a1f187bca2",
+    "semantic_hash": "25b021b9dc18ad4d96f9b9a1f187bca2"
+  },
+  "firmware/flight/FlightStateMachine.h": {
+    "mtime": 1794968521.614388,
+    "seen": 1795025734.3472645,
+    "ast_hash": "97e538bf3a0581f3ddd95b1d8cc3d422",
+    "semantic_hash": "97e538bf3a0581f3ddd95b1d8cc3d422"
+  },
+  "firmware/flight/LoggerTask.h": {
+    "mtime": 1794968521.614388,
+    "seen": 1795025734.3472655,
+    "ast_hash": "45fc7635a137df0f1bd9c0d79c80d00a",
+    "semantic_hash": "45fc7635a137df0f1bd9c0d79c80d00a"
+  },
+  "firmware/flight/SensorData.h": {
+    "mtime": 1794968521.614388,
+    "seen": 1795025734.347267,
+    "ast_hash": "818ca8912ca8b6e6359ab1dc8c15926c",
+    "semantic_hash": "818ca8912ca8b6e6359ab1dc8c15926c"
+  },
+  "firmware/flight/TelemetryTask.h": {
+    "mtime": 1794968521.614388,
+    "seen": 1795025734.3472679,
+    "ast_hash": "7450da391fdd8e6fd9abf51ca3b43c9b",
+    "semantic_hash": "7450da391fdd8e6fd9abf51ca3b43c9b"
+  },
+  "firmware/modules/buzzer_module.h": {
+    "mtime": 1794968521.614388,
+    "seen": 1795025734.3472688,
+    "ast_hash": "c262e2583a7ee68d906632e2e04bec1a",
+    "semantic_hash": "c262e2583a7ee68d906632e2e04bec1a"
+  },
+  "firmware/modules/filesystem_module.h": {
+    "mtime": 1794968521.6149273,
+    "seen": 1795025734.3472703,
+    "ast_hash": "1905a6f71984cec14d0cac6b3fa86da4",
+    "semantic_hash": "1905a6f71984cec14d0cac6b3fa86da4"
+  },
+  "firmware/modules/lora_module.h": {
+    "mtime": 1794968521.6149273,
+    "seen": 1795025734.3472712,
+    "ast_hash": "73d1c2458c0f09f372f56eed91c47a28",
+    "semantic_hash": "73d1c2458c0f09f372f56eed91c47a28"
+  },
+  "firmware/modules/parachute_module.h": {
+    "mtime": 1794968521.6149273,
+    "seen": 1795025734.3472722,
+    "ast_hash": "21b7d0f2def887625141b8a48dea1877",
+    "semantic_hash": "21b7d0f2def887625141b8a48dea1877"
+  },
+  "firmware/parachute_module.cpp": {
+    "mtime": 1794968521.6149273,
+    "seen": 1795025734.3472736,
+    "ast_hash": "809a790df85b52288c0730fb8edb54c1",
+    "semantic_hash": "809a790df85b52288c0730fb8edb54c1"
+  },
+  "firmware/sensors/BMP585Sensor.h": {
+    "mtime": 1794968521.6149273,
+    "seen": 1795025734.3472745,
+    "ast_hash": "85897c1d7dfeeeb8a4755ef93865aba4",
+    "semantic_hash": "85897c1d7dfeeeb8a4755ef93865aba4"
+  },
+  "firmware/sensors/GPSModule.h": {
+    "mtime": 1794968521.6154156,
+    "seen": 1795025734.3472755,
+    "ast_hash": "39c7769c36d423187efd637f4709f2b2",
+    "semantic_hash": "39c7769c36d423187efd637f4709f2b2"
+  },
+  "firmware/sensors/ISensor.h": {
+    "mtime": 1794968521.6154156,
+    "seen": 1795025734.3472764,
+    "ast_hash": "0bbc5dfb05f0d618728666ba2ad43c73",
+    "semantic_hash": "0bbc5dfb05f0d618728666ba2ad43c73"
+  },
+  "firmware/sensors/LSM6DS3Sensor.h": {
+    "mtime": 1794968521.6154156,
+    "seen": 1795025734.3472779,
+    "ast_hash": "1266e926b3b9d2c1e45b0a2ce735c815",
+    "semantic_hash": "1266e926b3b9d2c1e45b0a2ce735c815"
+  },
+  ".opencode/CONSISTENCY_ANALYSIS.md": {
+    "mtime": 1794968521.598129,
+    "seen": 1795025734.3472788,
+    "ast_hash": "3cd02173aac1954249c9d1b7172e9392",
+    "semantic_hash": "3cd02173aac1954249c9d1b7172e9392"
+  },
+  ".opencode/README.md": {
+    "mtime": 1794968521.5990667,
+    "seen": 1795025734.3472798,
+    "ast_hash": "b762281d35d8910838274115cbbb8a66",
+    "semantic_hash": "b762281d35d8910838274115cbbb8a66"
+  },
+  ".opencode/SKILLS_INDEX.md": {
+    "mtime": 1794968521.5990667,
+    "seen": 1795025734.347281,
+    "ast_hash": "dd3fc0a0fd3b18e669741e3f35e4d02c",
+    "semantic_hash": "dd3fc0a0fd3b18e669741e3f35e4d02c"
+  },
+  ".opencode/TEAM.md": {
+    "mtime": 1794968521.5990667,
+    "seen": 1795025734.347282,
+    "ast_hash": "b209ec32315e6daacd2cd06a4dba92ce",
+    "semantic_hash": "b209ec32315e6daacd2cd06a4dba92ce"
+  },
+  ".opencode/opencode.yaml": {
+    "mtime": 1794968521.5990667,
+    "seen": 1795025734.3472836,
+    "ast_hash": "4ca792c57e6d82951104d531f47a0396",
+    "semantic_hash": "4ca792c57e6d82951104d531f47a0396"
+  },
+  ".opencode/skills/code-reviewer/SKILL.md": {
+    "mtime": 1794968521.5994864,
+    "seen": 1795025734.347285,
+    "ast_hash": "c2ebd24fd9b443e7e3712300b963dae0",
+    "semantic_hash": "c2ebd24fd9b443e7e3712300b963dae0"
+  },
+  ".opencode/skills/documentation-specialist/SKILL.md": {
+    "mtime": 1794968521.5994864,
+    "seen": 1795025734.347286,
+    "ast_hash": "6bf442a8061f18e32fb0063c1473c8ff",
+    "semantic_hash": "6bf442a8061f18e32fb0063c1473c8ff"
+  },
+  ".opencode/skills/embedded-architect/SKILL.md": {
+    "mtime": 1794968521.5994864,
+    "seen": 1795025734.347287,
+    "ast_hash": "7e9aa60bbf788e186ce095ce9d1bda5b",
+    "semantic_hash": "7e9aa60bbf788e186ce095ce9d1bda5b"
+  },
+  ".opencode/skills/firmware-developer/SKILL.md": {
+    "mtime": 1794968521.5994864,
+    "seen": 1795025734.3472884,
+    "ast_hash": "ef542c42143b247a91fef0ecf7e64704",
+    "semantic_hash": "ef542c42143b247a91fef0ecf7e64704"
+  },
+  ".opencode/skills/fsm-specialist/SKILL.md": {
+    "mtime": 1794968521.5994864,
+    "seen": 1795025734.3472893,
+    "ast_hash": "adee1a61d4e19a147d8b3f885813e34d",
+    "semantic_hash": "adee1a61d4e19a147d8b3f885813e34d"
+  },
+  ".opencode/skills/test-engineer/SKILL.md": {
+    "mtime": 1794968521.5994864,
+    "seen": 1795025734.3472903,
+    "ast_hash": "ee86724d634671f8940075c8963646ba",
+    "semantic_hash": "ee86724d634671f8940075c8963646ba"
+  },
+  "AGENTS.md": {
+    "mtime": 1794968521.5994864,
+    "seen": 1795025734.3472915,
+    "ast_hash": "d1f99c377fba7e7dc22a055352d1693d",
+    "semantic_hash": "d1f99c377fba7e7dc22a055352d1693d"
+  },
+  "CHANGELOG.md": {
+    "mtime": 1794968521.5994864,
+    "seen": 1795025734.3472927,
+    "ast_hash": "8e601bcde925ba4a21b485ca3eb2bddf",
+    "semantic_hash": "8e601bcde925ba4a21b485ca3eb2bddf"
+  },
+  "CONTRIBUTING.md": {
+    "mtime": 1794968521.5994864,
+    "seen": 1795025734.3472936,
+    "ast_hash": "7fc8f4f56c390b7b75b0a3061afc1eb6",
+    "semantic_hash": "7fc8f4f56c390b7b75b0a3061afc1eb6"
+  },
+  "README.md": {
+    "mtime": 1794968521.5994864,
+    "seen": 1795025734.3472948,
+    "ast_hash": "59d45365d0aabde1764a6e33520e15cb",
+    "semantic_hash": "59d45365d0aabde1764a6e33520e15cb"
+  },
+  "docs/architecture.md": {
+    "mtime": 1794968521.5998359,
+    "seen": 1795025734.3472958,
+    "ast_hash": "93893ae444c84327bf30ce21d66fc729",
+    "semantic_hash": "93893ae444c84327bf30ce21d66fc729"
+  },
+  "docs/extracao-eletronica-telemetria-payload.md": {
+    "mtime": 1794968521.5998359,
+    "seen": 1795025734.3472967,
+    "ast_hash": "b4b9d8687126f82b60dabd543463352d",
+    "semantic_hash": "b4b9d8687126f82b60dabd543463352d"
+  },
+  "docs/flowchart.md": {
+    "mtime": 1794968521.5998359,
+    "seen": 1795025734.3472981,
+    "ast_hash": "047e329b61be260989a25f20cdc47923",
+    "semantic_hash": "047e329b61be260989a25f20cdc47923"
+  },
+  "docs/hardware.md": {
+    "mtime": 1794968521.5998359,
+    "seen": 1795025734.3472993,
+    "ast_hash": "aada27e8c3be8e8631cfe45aac4004e3",
+    "semantic_hash": "aada27e8c3be8e8631cfe45aac4004e3"
+  },
+  "docs/modules.md": {
+    "mtime": 1794968521.5998359,
+    "seen": 1795025734.3473003,
+    "ast_hash": "6a0b8a671435a0a8196f0addb030f878",
+    "semantic_hash": "6a0b8a671435a0a8196f0addb030f878"
+  },
+  "docs/software.md": {
+    "mtime": 1794968521.5998359,
+    "seen": 1795025734.3473017,
+    "ast_hash": "a58845728092d7555b19581354566bad",
+    "semantic_hash": "a58845728092d7555b19581354566bad"
+  },
+  "docs/telemetry-format.md": {
+    "mtime": 1794968521.5998359,
+    "seen": 1795025734.3473027,
+    "ast_hash": "a3cc8d957b7cea71af4bc89c86100516",
+    "semantic_hash": "a3cc8d957b7cea71af4bc89c86100516"
+  },
+  "extras/FSM_tester/explicacao.md": {
+    "mtime": 1794968521.608836,
+    "seen": 1795025734.3473036,
+    "ast_hash": "38112d21bfce373c1a9ac421b4b55403",
+    "semantic_hash": "38112d21bfce373c1a9ac421b4b55403"
+  },
+  "flight_records/thonyan_flight/voo_thonyan.txt": {
+    "mtime": 1794968521.6159244,
+    "seen": 1795025734.3473048,
+    "ast_hash": "b0ce311b727c4dee850db5c0fb0e5ad6",
+    "semantic_hash": "b0ce311b727c4dee850db5c0fb0e5ad6"
+  },
+  "hardware/mechanical/README.md": {
+    "mtime": 1794968521.642836,
+    "seen": 1795025734.3473058,
+    "ast_hash": "094e45822dd79efd4ba0ec32b97fa003",
+    "semantic_hash": "094e45822dd79efd4ba0ec32b97fa003"
+  },
+  "test/bench/README.md": {
+    "mtime": 1794968521.655759,
+    "seen": 1795025734.3473067,
+    "ast_hash": "1f2db77994dc6f56d3abd05126ebce72",
+    "semantic_hash": "1f2db77994dc6f56d3abd05126ebce72"
+  },
+  "test/gps_diag/README.md": {
+    "mtime": 1794968521.6559734,
+    "seen": 1795025734.347308,
+    "ast_hash": "2d03a61e2e90e2a43143fa544246e8b4",
+    "semantic_hash": "2d03a61e2e90e2a43143fa544246e8b4"
+  },
+  "test/parachute_servo/README.md": {
+    "mtime": 1794968521.656193,
+    "seen": 1795025734.347309,
+    "ast_hash": "ddfbe4aa3a0f685dab59fb136b0f1142",
+    "semantic_hash": "ddfbe4aa3a0f685dab59fb136b0f1142"
+  },
+  "flight_records/thonyan_flight/vz_comparison.png": {
+    "mtime": 1794968521.616836,
+    "seen": 1795025734.34731,
+    "ast_hash": "911515772082ae2d7c445d16e39a28fe",
+    "semantic_hash": "911515772082ae2d7c445d16e39a28fe"
+  }
+}
